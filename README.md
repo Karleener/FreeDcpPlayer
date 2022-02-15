@@ -2,7 +2,7 @@
 
 Free Dcp Player Nvidia GPU based for independent filmmakers
 
-Source code will be released soon.
+Source code will be shared here soon.
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only)
