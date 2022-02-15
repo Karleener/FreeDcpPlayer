@@ -1,0 +1,61 @@
+“This software contains source code provided by NVIDIA Corporation.”
+
+nvJPEG2K SUPPLEMENT TO SOFTWARE LICENSE AGREEMENT FOR NVIDIA SOFTWARE DEVELOPMENT KITS
+
+The terms in this supplement govern your use of the NVIDIA nvJPEG2K SDK under the terms of your license agreement (“Agreement”) as modified by this supplement. Capitalized terms used but not defined below have the meaning assigned to them in the Agreement.
+
+This supplement is an exhibit to the Agreement and is incorporated as an integral part of the Agreement. In the event of conflict between the terms in this supplement and the terms in the Agreement, the terms in this supplement govern.  
+
+4.1	License Scope. The SDK is licensed for you to develop applications only for use in systems with NVIDIA GPUs.
+
+2. Distribution. The following portions of the SDK are distributable under the Agreement: the runtime files .so and .h, nvjpeg2k_0.dll, nvjpeg2k.lib and libnvjpeg2k_static.a.
+
+3. Licensing. If the distribution terms in this Agreement are not suitable for your organization, or for any questions regarding this Agreement, please contact NVIDIA at nvidia-compute-license-questions@nvidia.com.
+ (v. November 14, 2020)
+
+
+OpenJPEG LICENSE
+
+/*
+ * The copyright in this software is being made available under the 2-clauses 
+ * BSD License, included below. This software may be subject to other third 
+ * party and contributor rights, including patent rights, and no such rights
+ * are granted under this license.
+ *
+ * Copyright (c) 2002-2014, Universite catholique de Louvain (UCL), Belgium
+ * Copyright (c) 2002-2014, Professor Benoit Macq
+ * Copyright (c) 2003-2014, Antonin Descampe
+ * Copyright (c) 2003-2009, Francois-Olivier Devaux
+ * Copyright (c) 2005, Herve Drolon, FreeImage Team
+ * Copyright (c) 2002-2003, Yannick Verschueren
+ * Copyright (c) 2001-2003, David Janssens
+ * Copyright (c) 2011-2012, Centre National d'Etudes Spatiales (CNES), France 
+ * Copyright (c) 2012, CS Systemes d'Information, France
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+
+
+
