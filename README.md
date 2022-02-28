@@ -2,14 +2,17 @@
 
 Free Dcp Player Nvidia GPU based for independent filmmakers
 
-Source code will be shared here soon.
+Source code is in a very early state, not cleaned...
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
-- Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only)
-- Asdcplib
-- SDL2
+- Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
+- Asdcplib (https://github.com/cinecert/asdcplib)
+- SDL2 (https://www.libsdl.org/download-2.0.php)
+- SDL_TTF (https://github.com/libsdl-org/SDL_ttf)
 
-The current version, for Windows 64, is in a beta state, for testing purpose only, limited to simple DCP :
+Some part of the code is partially inspired from VLC DCP project from Nicolas Bertrand.
+
+The current version of FreeDcpPlayer, for Windows 64, is in a beta state, for testing purpose only, limited to simple DCP :
 SMPTE or Interop, 2k, with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
 
 The command line is for example for audio device 0 and display 0 , assuming c:/mydcp/ contains the file ASSETMAP.xml
