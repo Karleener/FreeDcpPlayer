@@ -1,8 +1,6 @@
 # FreeDcpPlayer
 
-Free Dcp Player Nvidia GPU based for independent filmmakers
-
-Source code is in a very early state, not cleaned...
+Free Dcp Player Nvidia GPU based for independent filmmakers - version 0.3.3
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
@@ -12,8 +10,10 @@ FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly base
 
 Some part of the code is partially inspired from VLC DCP project from Nicolas Bertrand.
 
-The current version of FreeDcpPlayer, for Windows 64, is in a beta state, for testing purpose only, limited to simple DCP :
+The current version of FreeDcpPlayer,  is in a beta state, for testing purpose only, limited to simple DCP :
 SMPTE or Interop, 2k, with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
+
+A new wxWidgets based interface allows to lunch the main program, x64 anx Ubuntu compatible.
 
 The command line is for example for audio device 0 and display 0 , assuming c:/mydcp/ contains the file ASSETMAP.xml
 
@@ -25,14 +25,13 @@ User can also double-clic on the picture  : the horizontal position of the click
 Press “i” to enable or disable progress bar.
 Press "j" to enable or disable current fps information (from the image processing time).
 
-A GUI (also a beta version) is provided to generate the command line : RunMyDcpPlayer.exe
+A GUI  is provided to generate the command line : RunMyDcpPlayer_wx.exe
 - Choose the DCP (ASSETMAP.xml or ASSETMAP file)
 - Choose audio and display device
 - Choose 5.1 output if available.
 - Clic on "Run FreeDcpPlayer"
 
-In full resolution mode, choose a resolution screen close to 1920x1080 (in the Windows 10 display parameters) in order to avoid skipped frames.
-If the resolution of the screen is too high, the number of skipped frames will increase.
+This version has been tested with a Geforce 1060.
 
 If you disable "Full resolution" , image is screened with a 100% scale (One screen pixel = one image pixel).
 
