@@ -9,9 +9,9 @@
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
+ * GNU Lesser General Public License for more details. 
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software Foundation,
@@ -20,7 +20,7 @@
 
  /**
   * @file CPlayer.cpp
-  * @screen reels using Nvidia nvjp2k library
+  * @screen reels using Nvidia nvjp2k library 
   */
 
 #include "CPlayer.h"
@@ -67,8 +67,8 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 
 	start_frame = Options.start_frame;
 	NumBlock = 0;
-	is = out = out_swap = NULL;
-
+	out = out_swap = NULL;
+	win_w=win_h=0;
 	nvjpeg2k_handle = NULL;
 	AudioSuccess = VideoSuccess = false;
 
@@ -91,6 +91,11 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	OutEscape = false;
 	TimeCodeRate = 0;
 	Derive = 0.0;
+	if (out) SDL_FreeSurface(out);
+	if (out_swap) SDL_FreeSurface(out_swap);
+	out = out_swap = NULL;
+	if (mywin) SDL_GetWindowSize(mywin, &win_w,&win_h);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	start_frame = Options.start_frame;
 	offset_frame = start_frame-1;
 	string MyPath = DcpParse.DcpPath;
@@ -436,8 +441,6 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 		//		result = Writer.Write(reinterpret_cast<const byte_t*>(XMLDoc.c_str()), XMLDoc.size(), &write_count);
 		//}
 
-
-		char buf[64];
 		fs::path PathFont = full_path;
 		PathFont /= "sub.ttf";
 		string FontFileName{ PathFont.string() };
@@ -637,25 +640,26 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	height = image_comp_info[0].component_height;
 	width = image_comp_info[0].component_width;
 
-	if (mywin==NULL) mywin = win_init_render(width, height, &Renderer, BlackBackground, Options.NumDisplay, Options.FullScreen);
-
-	if (mywin==NULL) { fprintf(stderr, "\n Unable to open display window=%d\n", Options.NumDisplay);   tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
-	is = SDL_GetWindowSurface(mywin);
-	out = SDL_CreateRGBSurface(0, width, height, is->format->BitsPerPixel,
-		is->format->Rmask, is->format->Gmask, is->format->Bmask, is->format->Amask);
-	SDL_SetSurfaceBlendMode(is, SDL_BLENDMODE_NONE);
+	if (mywin==NULL) 
+	{
+		mywin = win_init_render(width, height, &Renderer, BlackBackground, Options.NumDisplay, Options.FullScreen);
+		if (mywin==NULL) { fprintf(stderr, "\n Unable to open display window=%d\n", Options.NumDisplay);   tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+	}
+ // we create new surface since width and weight can change with cpl change
+	if (out) SDL_FreeSurface(out);
+	if (out_swap) SDL_FreeSurface(out_swap);
+	out = SDL_CreateRGBSurface(0, width, height, 32,rmask, gmask, bmask, amask);
 	SDL_SetSurfaceBlendMode(out, SDL_BLENDMODE_NONE);
-	out_swap = SDL_CreateRGBSurface(0, width, height, is->format->BitsPerPixel,
-		is->format->Rmask, is->format->Gmask, is->format->Bmask, is->format->Amask);
+	out_swap = SDL_CreateRGBSurface(0, width, height, 32,rmask, gmask, bmask, amask);
 	SDL_SetSurfaceBlendMode(out_swap, SDL_BLENDMODE_NONE);
 
-	float scalex = (float(width) / float(is->w));
-	float scaley = (float(height) / float(is->h));
+	float scalex = (float(width) / float(win_w));
+	float scaley = (float(height) / float(win_h));
 	scalef = max(scalex, scaley);
 	int hf = height / scalef;
 	int wf = width / scalef;
-	int linits = is->h / 2 - hf / 2;
-	int cinits = is->w / 2 - wf / 2;
+	int linits = win_h / 2 - hf / 2;
+	int cinits = win_w / 2 - wf / 2;
 
 	vchanR.resize(width * height);
 	vchanG.resize(width * height);
@@ -686,10 +690,11 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	Mem.pLut26 = Lut26;
 	Mem.pLut22 = Lut22;
 	Mem.scr = out;
-	Mem.win_w = is->w;
-	Mem.win_h = is->h;
+
+	Mem.win_w = win_w;
+	Mem.win_h = win_h;
 	Mem.dstRect = { cinits, linits, wf, hf };
-	Mem.base = is->h - (is->h - (height) / scalef) / 2;
+	Mem.base = win_h - (win_h - (height) / scalef) / 2;
 	Mem.Scalef = scalef;
 	Mem.FrameCount = frame_count;
 	Mem.IncrustPosition = Options.IncrustPosition;
@@ -711,19 +716,9 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 		Af2->join(); delete Af2; Af2 = NULL;
 		Af3->join(); delete Af3; Af3 = NULL;
 		Af4->join(); delete Af4; Af4 = NULL;
-		Mem.scr = out;
-		out = out_swap;
-		out_swap = Mem.scr;
 	}
 
-	Mem.Background_Tx = SDL_CreateTextureFromSurface(Renderer, is);
-	SDL_Texture* TextTexture;
-	SDL_BlitScaled(Mem.scr, NULL, is, &Mem.dstRect);
-	SDL_RenderCopy(Renderer, Mem.Background_Tx, NULL, NULL);
-	SDL_DestroyTexture(Mem.Background_Tx);
-	Mem.Background_Tx = SDL_CreateTextureFromSurface(Renderer, is);
-	RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), start_frame, ref(Mem));
-	SDL_DestroyTexture(Mem.Background_Tx);
+  	RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), start_frame, ref(Mem));
 
 	tPrepAudio->join();
 	delete tPrepAudio;
@@ -799,18 +794,8 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 					Af2->join(); delete Af2; Af2 = NULL;
 					Af3->join(); delete Af3; Af3 = NULL;
 					Af4->join(); delete Af4; Af4 = NULL;
-					if (AfSub != NULL)
-					{
-						// wait for the end of the previous frame rendering
-						AfSub->join(); delete AfSub; AfSub = NULL;
-						SDL_DestroyTexture(Mem.Background_Tx);
-					}
 
-	
-
-					//start new rendering of the previous image
-					Mem.Background_Tx = SDL_CreateTextureFromSurface(Renderer, is);
-					AfSub = new thread(RenderImageWithSub, Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
+					RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
 				} // if treads ok
 
 				// wait for the end of decoding
@@ -840,9 +825,8 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				Mem.chanB = chanB;
 				Mem.chanR = chanR;
 				Mem.chanG = chanG;
+				Swap(out, out_swap);
 				Mem.scr = out;
-				out = out_swap;
-				out_swap = Mem.scr;
 				Af1 = new thread(ThreadQuarter1, &Mem);
 				Af2 = new thread(ThreadQuarter2, &Mem);
 				Af3 = new thread(ThreadQuarter3, &Mem);
@@ -862,12 +846,8 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 			Af3->join(); delete Af3; Af3 = NULL;
 			Af4->join(); delete Af4; Af4 = NULL;
 		}
-		if (mywin) SDL_UpdateWindowSurface(mywin);
-		if (AfSub != NULL)
-		{
-			AfSub->join();	delete AfSub;	AfSub = NULL;
-			SDL_DestroyTexture(Mem.Background_Tx);
-		}
+	
+		RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
 	} 
 	while (CurrentFrameNumber < frame_count && !OutEscape);
 	return RESULT_OK;
@@ -897,7 +877,7 @@ float CPlayer::Synchronisation()
 		fprintf(stderr, "Synchronisation out of delay");
 
 	ProcessingTimeWithDelay = Duration(ATimerLoop, AtimePerimage);
-	if (Options.verbose_flag) fprintf(stderr, "\nwaiting time %lf et pe=%lf\n", WaitingTime * 1000, Pe * 1000);
+	//if (Options.verbose_flag) fprintf(stderr, "\nwaiting time %lf\n", WaitingTime * 1000);
 
 	//for next frame
 	AtimePerimage = ATimerLocalInfo;
@@ -972,24 +952,26 @@ void CPlayer::EndAndClear(bool LastTime)
 	}
 	printf("\nPlayer end - Press any Key\n\n");
 	if (MyAudioDevice && LastTime) SDL_PauseAudioDevice(Audiodev, SDL_TRUE);
-	if (mywin != NULL && LastTime)
-	{   
-		bool loop = true;
-		event.type = 0;
-		do
-		{ 
-			SDL_PollEvent(&event);
-			if (event.type == SDL_KEYDOWN)
-			{
-				loop = false;
-			}
-		} while (loop);
-	}
+
+	// if (mywin != NULL && LastTime)
+	// {   
+	// 	bool loop = true;
+	// 	event.type = 0;
+	// 	do
+	// 	{ 
+	// 		SDL_PollEvent(&event);
+	// 		if (event.type == SDL_KEYDOWN)
+	// 		{
+	// 			loop = false;
+	// 		}
+	// 	} while (loop);
+	// }
 	SDL_FlushEvents(0, SDL_LASTEVENT);
 
 	if (out) SDL_FreeSurface(out);
 	if (out_swap) SDL_FreeSurface(out_swap);
-	if (Font) TTF_CloseFont(Font);
+	out = out_swap = NULL;
+	if (Font) TTF_CloseFont(Font); 
 	if (LastTime)
 	{
 		if (mywin) SDL_DestroyWindow(mywin);
@@ -1011,21 +993,24 @@ void CPlayer::EndAndClear(bool LastTime)
 
 void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<SubTitle>& MySubTitles, int width, int height, vector<int>& IndiceSub, Uint32 i, SMemoire& Mem)
 {
-	SDL_Surface* is = SDL_GetWindowSurface(Mem.mywin);
 	SDL_Rect MessageRect; //create a rect
 	SDL_Texture* TextTexture;
-	SDL_BlitScaled(Mem.scr, NULL, is, &Mem.dstRect);
-	SDL_RenderCopy(Renderer, Mem.Background_Tx, NULL, NULL);
+
+	Mem.Background_Tx = SDL_CreateTextureFromSurface(Renderer, Mem.scr);
+	SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
+	SDL_RenderClear(Renderer);
+	SDL_RenderCopy(Renderer, Mem.Background_Tx, NULL, &Mem.dstRect);
+	SDL_DestroyTexture(Mem.Background_Tx); 
 
 	if (Mem.IncrustPosition)
 	{
 		int PosFen = ((i * width) / Mem.FrameCount) / Mem.Scalef;
 		SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(Renderer, 255, 0, 0, 127);
-		SDL_Rect R1{ 0, is->h - 30, PosFen, 5 };
+		SDL_Rect R1{ 0, Mem.win_h - 30, PosFen, 5 };
 		SDL_RenderFillRect(Renderer, &R1);
 		SDL_SetRenderDrawColor(Renderer, 255, 255, 0, 127);
-		SDL_Rect R2{ PosFen, is->h - 30,  is->w-PosFen, 5 };
+		SDL_Rect R2{ PosFen, Mem.win_h - 30,  Mem.win_w-PosFen, 5 };
 		SDL_RenderFillRect(Renderer, &R2);
 		char buf[512];
 		sprintf(buf,"Frame %d", i);
@@ -1200,7 +1185,7 @@ void CPlayer::StateMachine()
 					CurrentFrameNumber = min(CurrentFrameNumber + Incrementation, frame_count);
 					Refresh = true;
 					NextState = PLAY;
-					if (Options.verbose_flag)  fprintf(stderr, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(stderr, "inc % d\n", Incrementation);
+					if (Options.verbose_flag)  {fprintf(stderr, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(stderr, "inc % d\n", Incrementation);}
 				}
 				if (event.key.keysym.sym == SPACEBAR)
 				{
@@ -1214,7 +1199,7 @@ void CPlayer::StateMachine()
 					if (CurrentFrameNumber > Incrementation) CurrentFrameNumber = CurrentFrameNumber - Incrementation; else CurrentFrameNumber = 0;
 					Refresh = true;
 					NextState = PLAY;
-					if (Options.verbose_flag)  fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(stderr, "dec %d\n", Incrementation);
+					if (Options.verbose_flag)  {fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(stderr, "dec %d\n", Incrementation);}
 
 				}
 				if (event.type == SDL_MOUSEBUTTONUP)
@@ -1300,7 +1285,6 @@ int CPlayer::From51to51_16B(const SFiveDotOne* GlobalBufferOneFrame, SFiveDotOne
 	SFiveDotOne Sample51;
 	float fechR, fechC, fechL, fechBR, fechBL,fechLFE; // discard LFE
 	int echR, echC, echL, echBR, echBL,echLFE;
-	float fech;
 
 	for (int j = 0; j < NbSamples; j++)
 	{
@@ -1418,14 +1402,18 @@ bool CPlayer::SelectAudioDeviceInitAudio()
 void CPlayer::ThreadQuarter1(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
-	if (Mem->mywin == NULL)
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL )
+	{
+		return;
+	}
+	if ( scr==NULL)
 	{
 		return;
 	}
 	int height = Mem->height;
 	int width = Mem->width;
-	SDL_Surface* scr = Mem->scr;
-	int scale = 4; // 12 - 8
+
 	Uint8 bpp = scr->format->BytesPerPixel;
 	Uint8 rs = scr->format->Rshift / 8;
 	Uint8 rg = scr->format->Gshift / 8;
@@ -1483,14 +1471,13 @@ void CPlayer::ThreadQuarter1(void* Param)
 void CPlayer::ThreadQuarter2(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
-	if (Mem->mywin == NULL)
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr==NULL)
 	{
 		return;
 	}
 	int height = Mem->height;
 	int width = Mem->width;
-	SDL_Surface* scr = Mem->scr;
-	int scale = 4; // 12 - 8
 	Uint8 bpp = scr->format->BytesPerPixel;
 	Uint8 rs = scr->format->Rshift / 8;
 	Uint8 rg = scr->format->Gshift / 8;
@@ -1547,14 +1534,13 @@ void CPlayer::ThreadQuarter2(void* Param)
 void CPlayer::ThreadQuarter3(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
-	if (Mem->mywin == NULL)
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr==NULL)
 	{
 		return;
 	}
 	int height = Mem->height;
 	int width = Mem->width;
-	SDL_Surface* scr = Mem->scr;
-	int scale = 4; // 12 - 8
 	Uint8 bpp = scr->format->BytesPerPixel;
 	Uint8 rs = scr->format->Rshift / 8;
 	Uint8 rg = scr->format->Gshift / 8;
@@ -1611,14 +1597,13 @@ void CPlayer::ThreadQuarter3(void* Param)
 void CPlayer::ThreadQuarter4(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
-	if (Mem->mywin == NULL)
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr==NULL)
 	{
 		return;
 	}
 	int height = Mem->height;
 	int width = Mem->width;
-	SDL_Surface* scr = Mem->scr;
-	int scale = 4; // 12 - 8
 	Uint8 bpp = scr->format->BytesPerPixel;
 	Uint8 rs = scr->format->Rshift / 8;
 	Uint8 rg = scr->format->Gshift / 8;
@@ -1680,6 +1665,7 @@ bool CPlayer::get_text_and_rect(SDL_Renderer* renderer, int x, int y, const char
 	SDL_Surface* surface=NULL;
 	SDL_Color textColor = { 255, 255, 255, 0 };
 	if (string(text) == "") return false;
+	if (font == NULL) return false;
 	//surface = TTF_RenderText_Solid(font, text, textColor);
 	surface = TTF_RenderUTF8_Solid(font, text, textColor);
 	if (surface)
@@ -1700,9 +1686,9 @@ bool CPlayer::get_text_and_rect(SDL_Renderer* renderer, int x, int y, const char
 
 Uint32 CPlayer::DecodeTime(string chaineTps, double frame_rate, bool TypeCs=true)
 {
-	Uint32 secs = 0;
-	Uint32 FrameNumber;
-	Uint32 h, m, s, ee,cs;
+	int secs = 0;
+	int FrameNumber;
+	int h, m, s, ee,cs;
 	if (TypeCs)
 	{
 		if (sscanf(chaineTps.c_str(), "%d:%d:%d:%d", &h, &m, &s, &ee) >= 3)
@@ -1731,44 +1717,68 @@ SDL_Window* CPlayer::win_init_render(int w, int h, SDL_Renderer** Renderer, bool
 	int displays = SDL_GetNumVideoDisplays();
 	if (NumDisplay > displays || NumDisplay < 0) NumDisplay = 0;
 
-	SDL_DisplayMode target, closest;
-	target.w = 1920;
-	target.h = 1080;
-	target.format = 0;  // don't care
-	target.refresh_rate = 0; // don't care
-	target.driverdata = 0; // initialize to 0
-	SDL_GetClosestDisplayMode(0, &target, &closest);
+	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+    rmask = 0xff000000;
+    gmask = 0x00ff0000;
+    bmask = 0x0000ff00;
+    amask = 0x000000ff;
+#else
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
+    amask = 0xff000000;
+#endif
+
+	// SDL_DisplayMode target, closest;
+	// target.w = 1920;
+	// target.h = 1080;
+	// target.format = 0;  // don't care
+	// target.refresh_rate = 0; // don't care
+	// target.driverdata = 0; // initialize to 0
+	// SDL_GetClosestDisplayMode(0, &target, &closest);
 
 
-	if (BlackBackground)
-	{
-		SDL_Window* mainWindow = SDL_CreateWindow("Main Window", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), 1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_SHOWN);
-		SDL_Renderer* mainRenderer = SDL_CreateRenderer(mainWindow, -1, SDL_RENDERER_ACCELERATED);
-		SDL_SetRenderDrawColor(mainRenderer, 10, 10, 10, 255);
-		SDL_RenderClear(mainRenderer);
-		SDL_RenderPresent(mainRenderer);
-	}
+	//if (BlackBackground)
+	//{
+	//	SDL_Window* mainWindow = SDL_CreateWindow("Main Window", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), 1000, 1000, SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_SHOWN);
+	//	SDL_Renderer* mainRenderer = SDL_CreateRenderer(mainWindow, -1, SDL_RENDERER_ACCELERATED);
+	//	SDL_SetRenderDrawColor(mainRenderer, 10, 10, 10, 255);
+	//	SDL_RenderClear(mainRenderer);
+	//	SDL_RenderPresent(mainRenderer);
+	//}
 	if (FullScreen)
 	{
 		SDL_DisplayMode DM;
 		SDL_GetCurrentDisplayMode(NumDisplay, &DM);
+		win = SDL_CreateWindow("Dcp", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), DM.w, DM.h,  SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
+		//mywinAccel = SDL_CreateWindow("DCP", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), DM.w, DM.h,  /*SDL_WINDOW_ALWAYS_ON_TOP |*/SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
+		// win for surfaces
 
-
-		win = SDL_CreateWindow("DCP", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), DM.w, DM.h, /*SDL_WINDOW_OPENGL |*/  SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
-		//win = SDL_CreateWindow("DCP", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), 1920, 1080, /*SDL_WINDOW_OPENGL |*/  SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
 		//SDL_SetWindowDisplayMode(win, &closest);
-		//SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
+		//SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
 	}
-	else 	
-		win = SDL_CreateWindow("DCP", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), w, h, /*SDL_WINDOW_OPENGL |*/ SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
+	else
+	{
+		win = SDL_CreateWindow("Dcp", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), w, h,  SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
+		//mywinAccel = SDL_CreateWindow("DCP", SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), SDL_WINDOWPOS_CENTERED_DISPLAY(NumDisplay), w, h,  SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS | SDL_WINDOW_SHOWN);
+
+	}
 
 	*Renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	SDL_GetWindowSize(win, &win_w,&win_h);
 	assert(win != NULL);
-	SDL_SetWindowTitle(win, "DCP");
-
 
 	return win;
+}
+
+
+void CPlayer::Swap(SDL_Surface* &out1, SDL_Surface* &out2)
+{
+	SDL_Surface* temp;
+	temp = out1;
+	out1 = out2;
+	out2 = temp;
 }
 
  

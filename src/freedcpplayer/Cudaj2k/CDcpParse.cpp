@@ -27,6 +27,8 @@
 //#include "pch.h"
 #include "CDcpParse.h"
 #include "pugixml.hpp"
+#include <cstring>
+#include <algorithm>
 
 
 void Logdcp(const char *aff, auto  Name)

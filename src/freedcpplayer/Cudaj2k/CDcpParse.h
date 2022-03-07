@@ -26,14 +26,14 @@
 
 #pragma once
 
-#include <windows.h>
-#include <filesystem>
+//#include <windows.h>
+//#include <filesystem>
 #include<vector>
 #include<string>
 #include<iostream>
 #include <list>
 
-using namespace std;
+
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
 #include <windows.h>
@@ -44,7 +44,7 @@ namespace fs = std::filesystem;
 #include <experimental/filesystem>
 namespace fs = std::experimental::filesystem::v1;
 #endif
-
+using namespace std;
 struct SRational
 {
     uint32_t Numerator;

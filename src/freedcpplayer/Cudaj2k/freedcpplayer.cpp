@@ -29,19 +29,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-// version 0.2.1
+// version 0.3.2
 // change
 // subtitle with UTF8 encoding
 // use TTF font embedded in DCP or defaut if not found
 // parse multi CPL and multi reel DCP
 // SMPTE and Interop
 // stero and 5.1 soundtrack
-
+// 06 - 03- 2022 accelerated rendering up to 4k in real time
+#include <stdlib.h>
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
-#endif
-#include <stdlib.h>
 #include <crtdbg.h>
+#endif
+
+
 
 #include "KM_fileio.h"
 #include "WavFileWriter.h"
@@ -171,7 +173,7 @@ void ParseDCP(vector<string>& MxfFiles, string MyPath)
 					{
 						for (pugi::xml_node Path = chunk.first_child(); Path; Path = Path.next_sibling())
 						{
-							filesystem::path tempp = Path.first_child().value();
+							fs::path tempp = Path.first_child().value();
 							if (string(Path.name()) =="Path") 
 								if (tempp.extension() == ".mxf")
 									NomFichiermxf.push_back(tempp.string());
@@ -182,7 +184,7 @@ void ParseDCP(vector<string>& MxfFiles, string MyPath)
 			}
 
 			//std::cout << std::endl;
-		}
+		} 
 
 	}
 
@@ -244,7 +246,7 @@ int main(int argc, const char** argv)
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	printf("FreeDcpPlayer version 0.2.1 Multi reel based\n\n");
+	printf("FreeDcpPlayer version 0.3.3\n\n");
 	fs::path full_path = (fs::path(argv[0]).parent_path());
 
 	//Without file name
@@ -255,7 +257,7 @@ int main(int argc, const char** argv)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(stderr, "FreeDcpPlayer version 0.2.1 Multi reel based\n");
+	if (Options.verbose_flag) fprintf(stderr, "FreeDcpPlayer version 0.3.3\n");
 	if (Options.version_flag)
 		banner();
 

@@ -102,9 +102,10 @@ public :
 	SDL_Renderer* Renderer;
 	SDL_Event event;
 	SDL_AudioDeviceID Audiodev;
-	SDL_Surface* is;
 	SDL_Surface* out;
 	SDL_Surface* out_swap;
+	Uint32 rmask, gmask, bmask, amask;
+	int win_h,win_w;
 
 	vector<int> IndiceSub;
 	vector <SubTitle> MySubTitles;
@@ -197,6 +198,7 @@ public :
 	Uint32 DecodeTime(string chaineTps, double frame_rate,bool TypeCs);
 	SDL_Window* win_init_render(int w, int h, SDL_Renderer** Renderer, bool BlackBackGround, int NumDisplay, bool FullScreen);
 	void RefreshAndContinue();
+	void Swap(SDL_Surface* &out1, SDL_Surface* &out2);
 
 
 };
