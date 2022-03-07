@@ -26,7 +26,7 @@ Press “i” to enable or disable progress bar.
 Press "j" to enable or disable current fps information (from the image processing time).
 
 A GUI  is provided to generate the command line : RunMyDcpPlayer_wx.exe
-- Choose the DCP (ASSETMAP.xml or ASSETMAP file)
+- Choose the DCP (folder containing ASSETMAP.xml or ASSETMAP file)
 - Choose audio and display device
 - Choose 5.1 output if available.
 - Clic on "Run FreeDcpPlayer"
