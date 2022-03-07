@@ -2,4 +2,4 @@ Source of freedcpplayer.
 Needs to be linked to a win64 version of Asdcplib
 A Visual Studio 2019 sln is provided
 A makefile is also provided for linux, tested with Ubuntu 20.04
-The linux version requires to be linked to libasdcp.a and libkumu.a, provided in the asdcplib_linux.zip file
+The linux version requires to be linked to libasdcp.a and libkumu.a, provided in the asdcp_linux.zip file
