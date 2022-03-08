@@ -46,9 +46,10 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	Derive = 0.0;
 	HaveSub = false;
 	Af1 = Af2 = Af3 = Af4 =AfSub  = NULL;
-	Font = NULL;
+	Font = Font32 = Font64 = NULL;
 	BlackBackground = Options.BlackBackground;
 	WaitLastStop = true;
+	FontSize = 64;
 
 	Context = 0;
 	HMAC = 0;
@@ -81,13 +82,20 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	GlobalBufferOneFrame = NULL;
 	AudioForDevice = NULL;
 
+
+	fs::path PathLog = full_path;
+	PathLog /= "freedcpplayer.log";
+	string LogFileName{ PathLog.string() };
+	fp_log = NULL;
+	fp_log = fopen(LogFileName.c_str(), "a+");
+
 	PrepareXYZ2RGBLUT();
 
 }
 
 Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CReel *ptrReel_i)
 {
-	Font = NULL;
+	Font = Font32 = Font64 =  NULL;
 	OutEscape = false;
 	TimeCodeRate = 0;
 	Derive = 0.0;
@@ -101,7 +109,7 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	string MyPath = DcpParse.DcpPath;
 	if (MyPath=="")
 	{
-		fprintf(stderr, "\nError in DCP path"); return RESULT_FAIL;
+		if (Options.verbose_flag) fprintf(fp_log, "\nError in DCP path"); return RESULT_FAIL;
 	}
 	MxfFiles.resize(4);
 	ptrReel = ptrReel_i;
@@ -115,18 +123,22 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 
 	if (!DcpParse.SoundOk)
 	{
-		fprintf(stderr, "\nMissing audio file"); return RESULT_FAIL;
+		if (Options.verbose_flag) fprintf(fp_log, "\nMissing audio file"); 
+		return RESULT_FAIL;
 	}
 	if (!DcpParse.VideoOk)
 	{
-		fprintf(stderr, "\nMissing video file"); return RESULT_FAIL;
+		if (Options.verbose_flag) fprintf(fp_log, "\nMissing video file"); 
+		return RESULT_FAIL;
 	}
 
 	pReader=new JP2K::MXFReader(*fileReaderFactory);
 	pFrameBuffer=new JP2K::FrameBuffer(Options.fb_size);
 
 	Result_t resultVideo = pReader->OpenRead(MxfFiles[0]); // read video
-	if (!ASDCP_SUCCESS(resultVideo)) { fprintf(stderr, "Error: video file not found\n");  return RESULT_FAIL; }
+	if (!ASDCP_SUCCESS(resultVideo)) { 
+		if (Options.verbose_flag)fprintf(fp_log, "Error: video file not found\n"); 
+	return RESULT_FAIL; }
 	else VideoSuccess = true;
 
 	string NomAudio = MxfFiles[1];
@@ -137,7 +149,10 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	pReaderPCM = new PCM::MXFReader(defFactory);
 	pFrameBufferPCM= new PCM::FrameBuffer;
 	Result_t resultAudio = pReaderPCM->OpenRead(NomAudio); // read video
-	if (!ASDCP_SUCCESS(resultAudio)) { fprintf(stderr, "Error: audio file not found\n");  return RESULT_FAIL; }
+	if (!ASDCP_SUCCESS(resultAudio)) {
+		if (Options.verbose_flag) 
+		fprintf(fp_log, "Error: audio file not found\n"); 
+	return RESULT_FAIL; }
 	pReaderPCM->FillAudioDescriptor(ADesc);
 	if (ADesc.EditRate != EditRate_23_98
 		&& ADesc.EditRate != EditRate_24
@@ -172,7 +187,7 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 			}
 			else
 			{
-				fputs("File does not contain HMAC values, ignoring -m option.\n", stderr);
+				fputs("File does not contain HMAC values, ignoring -m option.\n", fp_log);
 			}
 		}
 	}
@@ -201,7 +216,7 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 		SizeAudioStruct = sizeof(SStereo24b);
 		SizeAudioDeviceStruct = sizeof(SStereo);
 	}
-	if (!(ADesc.ChannelCount == 2 || ADesc.ChannelCount == 6)) { fprintf(stderr, "Audio 5.1 and stereo are the only audio format supported\nYou audio file contains %d channels\n\n",ADesc.ChannelCount);  return RESULT_FAIL; }
+	if (!(ADesc.ChannelCount == 2 || ADesc.ChannelCount == 6)) { if (Options.verbose_flag) fprintf(fp_log, "Audio 5.1 and stereo are the only audio format supported\nYou audio file contains %d channels\n\n",ADesc.ChannelCount);  return RESULT_FAIL; }
 
 	GlobalBufferOneFrame = (unsigned char*)malloc(NbSampleperImage * SizeAudioStruct * NbBlock);
 
@@ -239,7 +254,8 @@ Result_t CPlayer::InitialisationJ2K()
 
 	nvjpeg2kStatus_t etat;
 	etat = nvjpeg2kDecodeParamsSetRGBOutput(decode_params, 0); // modif test
-	if (etat != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "Cuda prepare RGB output failed\n"); return RESULT_FAIL; }
+	if (etat != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag)fprintf(fp_log, "Cuda prepare RGB output failed\n"); 
+	return RESULT_FAIL; }
 
 	output_image.pixel_data = NULL;
 	//PrepareXYZ2RGBLUT();
@@ -249,27 +265,29 @@ Result_t CPlayer::InitialisationJ2K()
 	frame_count = ptrReel->ptrMainPicture->iDuration;
 	if (Options.verbose_flag)
 	{
-		fprintf(stderr, "Frame Buffer size: %u\n", Options.fb_size);
+		fprintf(fp_log, "Frame Buffer size: %u\n", Options.fb_size);
 		JP2K::PictureDescriptorDump(PDesc);
 	}
 	if (MxfFiles[2] != "")
 	{
 
 		IndiceSub.resize(frame_count);
-		Result_t resultSub = Read_timed_text_file(*fileReaderFactory, MxfFiles[2], full_path, Font);
-		if (!ASDCP_SUCCESS(resultSub)) { fprintf(stderr, "error: subtitle file not found\n");  return RESULT_FAIL; }
+		Result_t resultSub = Read_timed_text_file(*fileReaderFactory, MxfFiles[2], full_path);
+		if (!ASDCP_SUCCESS(resultSub)) { if (Options.verbose_flag)  fprintf(fp_log, "error: subtitle file not found\n");  return RESULT_FAIL; }
 		if (Font != NULL) HaveSub = true; else  HaveSub = false;
 	}
 	else HaveSub = false;
 	//temporaire
 	HaveSub = true;
-	if (Font == NULL) {
-		fprintf(stderr, "\nError: font not found\nDefault font will be used\n");
+	if (Font32 == NULL) {
+		if (Options.verbose_flag) fprintf(fp_log, "\nError: font not found\nDefault font will be used\n");
 		fs::path PathFont = full_path ;
 		PathFont /= "NotoMono-Regular.ttf";
 		string FontFileName2{ PathFont.string() };
-		Font = TTF_OpenFont(FontFileName2.c_str(), 32);
-		if (Font == NULL) fprintf(stderr, "\nError: font %s not found\nSubtitle will be ignored\n", FontFileName2.c_str());
+		//if (win_h != 0) FontSize = (32 * win_h) / 1080; else FontSize = 32;
+		Font32 = TTF_OpenFont(FontFileName2.c_str(), 32);
+		Font64 = TTF_OpenFont(FontFileName2.c_str(), 64);
+		if (Font32 == NULL || Font64==NULL) if (Options.verbose_flag) fprintf(fp_log, "\nError: font %s not found\nSubtitle will be ignored\n", FontFileName2.c_str());
 	}
 	return RESULT_OK;
 
@@ -295,7 +313,7 @@ bool CPlayer::PrepareXYZ2RGBLUT()
 	return true;
 }
 
-Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReaderFactory, string inputFile, fs::path full_path, TTF_Font*& FontSub)
+Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReaderFactory, string inputFile, fs::path full_path)
 {
 	AESDecContext* Context = 0;
 	HMACContext* HMAC = 0;
@@ -351,7 +369,7 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				}
 				else
 				{
-					fputs("File does not contain HMAC values, ignoring -m option.\n", stderr);
+					fputs("File does not contain HMAC values, ignoring -m option.\n", fp_log);
 				}
 			}
 		}
@@ -454,10 +472,12 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				if (ASDCP_SUCCESS(result))
 					result = Writer.Write(FrameBuffer.RoData(), FrameBuffer.Size(), &write_count);
 				if (Options.verbose_flag)
-					FrameBuffer.Dump(stderr, Options.fb_dump_size);
+					FrameBuffer.Dump(fp_log, Options.fb_dump_size);
 			}
 		}
-		FontSub = TTF_OpenFont(FontFileName.c_str(), 32);
+		//if (win_h != 0) FontSize = (32 * win_h) / 1080; else FontSize = 32;
+		Font32 = TTF_OpenFont(FontFileName.c_str(), 32);
+		Font64 = TTF_OpenFont(FontFileName.c_str(), 64);
 	} // if extention is MXF
 
 
@@ -525,9 +545,12 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				IndiceSub[t] = 0; // empty
 			}
 		}
-
+		//if (win_h != 0) FontSize = (32 * win_h) / 1080; else FontSize = 32;
 		if (MxfFiles[3] != "")
-			FontSub = TTF_OpenFont(MxfFiles[3].c_str(), 32);
+		{
+			Font32 = TTF_OpenFont(MxfFiles[3].c_str(), 32);
+			Font32 = TTF_OpenFont(MxfFiles[3].c_str(), 64);
+		}
 	}
 
 	return RESULT_OK;
@@ -543,7 +566,7 @@ void CPlayer::PrepareFirstAudioBuffering(void *Param)
 	pPlayer->last_frame = pPlayer->frame_count;
 	ui32_t start_frame = pPlayer->start_frame;
 	if (start_frame >= pPlayer->last_frame) { 
-		fprintf(stderr, "start_frame=%d is greater or equal than last_frame=%d\n", start_frame, pPlayer->last_frame);  
+		if (pPlayer->Options.verbose_flag) fprintf(pPlayer->fp_log, "start_frame=%d is greater or equal than last_frame=%d\n", start_frame, pPlayer->last_frame);
 		return ; }
 	SDL_ClearQueuedAudio(pPlayer->Audiodev);
 	SDL_PauseAudioDevice(pPlayer->Audiodev, SDL_TRUE);
@@ -565,7 +588,7 @@ void CPlayer::PrepareFirstAudioBuffering(void *Param)
 			}
 			else
 			{
-				fputs("File does not contain HMAC values, ignoring -m option.\n", stderr);
+				fputs("File does not contain HMAC values, ignoring -m option.\n", fp_log);
 			}
 		}
 	}
@@ -595,7 +618,7 @@ void CPlayer::PrepareFirstAudioBuffering(void *Param)
 		if (pPlayer->ADesc.ChannelCount == 2) pPlayer->FromStereotoStereo((SStereo24b*)pPlayer->GlobalBufferOneFrame, (SStereo*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
 		r= SDL_QueueAudio(pPlayer->Audiodev, (const void*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * pPlayer->SizeAudioDeviceStruct * lenaudio);
 		if (r != 0) {
-			fprintf(stderr,"Audio device error\n"); 
+			if(pPlayer->Options.verbose_flag) fprintf(pPlayer->fp_log,"Audio device error\n"); 
 			pPlayer->AudioSuccess = false;
 		}
 	}
@@ -624,26 +647,35 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	bitstream_buffer = pFrameBuffer->Data();
 	length = pFrameBuffer->Size();
 	nvjpeg2kStatus_t etat = nvjpeg2kStreamParse(nvjpeg2k_handle, bitstream_buffer, length, 0, 0, nvjpeg2k_stream);
-	if (etat != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "\n nvjpeg2kStreamParse failed\n Image format not supported\n");  tPrepAudio->join(); delete tPrepAudio;	return RESULT_FAIL; }
+	if (etat != NVJPEG2K_STATUS_SUCCESS) {
+		if (Options.verbose_flag) fprintf(fp_log, "\n nvjpeg2kStreamParse failed\n Image format not supported\n");
+		tPrepAudio->join(); delete tPrepAudio;	return RESULT_FAIL;
+	}
 	etat = nvjpeg2kStreamGetImageInfo(nvjpeg2k_stream, &image_info);
-	if (etat != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "\n nvjpeg2kStreamGetImageInfo failed\n");  tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+	if (etat != NVJPEG2K_STATUS_SUCCESS) {
+		if (Options.verbose_flag) fprintf(fp_log, "\n nvjpeg2kStreamGetImageInfo failed\n");
+		tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL;
+	}
 	for (unsigned int c = 0; c < image_info.num_components; c++)
 	{
 		etat = nvjpeg2kStreamGetImageComponentInfo(nvjpeg2k_stream, &image_comp_info[c], c);
-		if (etat != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "\n nvjpeg2kStreamGetImageComponentInfo failed\n");  tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+		if (etat != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag) fprintf(fp_log, "\n nvjpeg2kStreamGetImageComponentInfo failed\n");  tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
 	}
 	for (int c = 0; c < NUM_COMPONENTS; c++)
 	{
 		cudaError_t er = cudaMallocPitch((void**)&decode_output[c], (size_t*)&pitch_in_bytes[c], image_comp_info[c].component_width * bytes_per_element, image_comp_info[c].component_height);
-		if (er != cudaSuccess) { fprintf(stderr, "\n cudaMallocPitch failed for component=%d\nArchitecure Nvidia PASCAL and above required\n", c);  tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+		if (er != cudaSuccess) {
+			if (Options.verbose_flag) fprintf(fp_log, "\n cudaMallocPitch failed for component=%d\nArchitecure Nvidia PASCAL and above required\n", c);
+			tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL;
+		}
 	}
 	height = image_comp_info[0].component_height;
 	width = image_comp_info[0].component_width;
 
-	if (mywin==NULL) 
+	if (mywin == NULL)
 	{
 		mywin = win_init_render(width, height, &Renderer, BlackBackground, Options.NumDisplay, Options.FullScreen);
-		if (mywin==NULL) { fprintf(stderr, "\n Unable to open display window=%d\n", Options.NumDisplay);   tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+		if (mywin == NULL) { if (Options.verbose_flag) fprintf(fp_log, "\n Unable to open display window=%d\n", Options.NumDisplay);   tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
 	}
  // we create new surface since width and weight can change with cpl change
 	if (out) SDL_FreeSurface(out);
@@ -652,6 +684,9 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	SDL_SetSurfaceBlendMode(out, SDL_BLENDMODE_NONE);
 	out_swap = SDL_CreateRGBSurface(0, width, height, 32,rmask, gmask, bmask, amask);
 	SDL_SetSurfaceBlendMode(out_swap, SDL_BLENDMODE_NONE);
+
+	if (win_h > 1440) Font = Font64;
+	else Font = Font32;
 
 	float scalex = (float(width) / float(win_w));
 	float scaley = (float(height) / float(win_h));
@@ -671,18 +706,18 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	bool loop = true;
 
 	nvjpeg2kStatus_t status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
-	if (etat != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "\n Cuda decoding failed\n"); tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
+	if (etat != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda decoding failed\n"); tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
 	cudaError_t er = cudaDeviceSynchronize();
-	if (er != cudaSuccess) { fprintf(stderr, "\n Cuda synchronization error\n"); tPrepAudio->join();delete tPrepAudio; return RESULT_FAIL; }
+	if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda synchronization error\n"); tPrepAudio->join();delete tPrepAudio; return RESULT_FAIL; }
 	unsigned short* chanR = (unsigned short*)vchanR.data();
 	unsigned short* chanG = (unsigned short*)vchanG.data();
 	unsigned short* chanB = (unsigned short*)vchanB.data();
 	er = cudaMemcpy2D(chanR, (size_t)width * sizeof(unsigned short), output_image.pixel_data[0], pitch_in_bytes[0], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-	if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D Red failed\n");  	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
+	if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Red failed\n");  	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
 	er = cudaMemcpy2D(chanG, (size_t)width * sizeof(unsigned short), output_image.pixel_data[1], pitch_in_bytes[1], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-	if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D  Green failed\n"); 	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
+	if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D  Green failed\n"); 	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
 	er = cudaMemcpy2D(chanB, (size_t)width * sizeof(unsigned short), output_image.pixel_data[2], pitch_in_bytes[2], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-	if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D Blue failed\n"); 	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
+	if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Blue failed\n"); 	tPrepAudio->join();	delete tPrepAudio; return RESULT_FAIL; }
 
 	Mem.mywin = mywin;
 	Mem.width = width;
@@ -778,11 +813,11 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				//FILE* temp = fopen("c:\\video\\temp.bin", "wb"); fwrite(bitstream_buffer, length, 1, temp); fclose(temp);
 				nvjpeg2kStatus_t etat = nvjpeg2kStreamParse(nvjpeg2k_handle, bitstream_buffer, length, 0, 0, nvjpeg2k_stream);
 				if (etat != NVJPEG2K_STATUS_SUCCESS) {
-					fprintf(stderr, "\n nvjpeg2kStreamParse in loop failed\n ");
+					if (Options.verbose_flag) fprintf(fp_log, "\n nvjpeg2kStreamParse in loop failed\n ");
 					//return RESULT_FAIL;
 				}
 				nvjpeg2kStatus_t status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
-				if (status != NVJPEG2K_STATUS_SUCCESS) { fprintf(stderr, "\n Cuda decoding in loop failed\n");  return RESULT_FAIL; }
+				if (status != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda decoding in loop failed\n");  return RESULT_FAIL; }
 				// image is decoded, still in the GPU memory
 
 
@@ -800,7 +835,7 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 
 				// wait for the end of decoding
 				er = cudaDeviceSynchronize();
-				if (er != cudaSuccess) { fprintf(stderr, "\n Cuda synchronization in loop error\n");  return RESULT_FAIL; }
+				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda synchronization in loop error\n");  return RESULT_FAIL; }
 
 
 
@@ -817,11 +852,11 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				unsigned short* chanG = (unsigned short*)vchanG.data();
 				unsigned short* chanB = (unsigned short*)vchanB.data();
 				er = cudaMemcpy2D(chanR, (size_t)width * sizeof(unsigned short), output_image.pixel_data[0], pitch_in_bytes[0], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-				if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D Red failed\n");  return RESULT_FAIL; }
+				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Red failed\n");  return RESULT_FAIL; }
 				er = cudaMemcpy2D(chanG, (size_t)width * sizeof(unsigned short), output_image.pixel_data[1], pitch_in_bytes[1], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-				if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D Green failed\n");  return RESULT_FAIL; }
+				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Green failed\n");  return RESULT_FAIL; }
 				er = cudaMemcpy2D(chanB, (size_t)width * sizeof(unsigned short), output_image.pixel_data[2], pitch_in_bytes[2], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
-				if (er != cudaSuccess) { fprintf(stderr, "\n cudaMemcpy2D Blue failed\n");  return RESULT_FAIL; }
+				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Blue failed\n");  return RESULT_FAIL; }
 				Mem.chanB = chanB;
 				Mem.chanR = chanR;
 				Mem.chanG = chanG;
@@ -874,10 +909,10 @@ float CPlayer::Synchronisation()
 	} while (ProcessingTimeWithDelayGlobal < Pe && WaitingTime < 1.0);
 
 	if (WaitingTime >= 1.0)
-		fprintf(stderr, "Synchronisation out of delay");
+		if (Options.verbose_flag) fprintf(fp_log, "Synchronisation out of delay");
 
 	ProcessingTimeWithDelay = Duration(ATimerLoop, AtimePerimage);
-	//if (Options.verbose_flag) fprintf(stderr, "\nwaiting time %lf\n", WaitingTime * 1000);
+	//if (Options.verbose_flag) fprintf(fp_log, "\nwaiting time %lf\n", WaitingTime * 1000);
 
 	//for next frame
 	AtimePerimage = ATimerLocalInfo;
@@ -890,13 +925,13 @@ float CPlayer::Synchronisation()
 //	TheoreticalFrame = Uint32(floor(ff));
 	TheoreticalFrame+=	start_frame;
 	DisplayFps = (1.0 / ProcessingTime);
-	if (Options.verbose_flag) fprintf(stderr, "Frame=%d   Theortical frame = %d   Global time = %lf frame proc. time=%lf ms    de=%lf  - proc time with delay = %lf , ff=%lf\n",
+	if (Options.verbose_flag) fprintf(fp_log, "Frame=%d   Theortical frame = %d   Global time = %lf frame proc. time=%lf ms    de=%lf  - proc time with delay = %lf , ff=%lf\n",
 		CurrentFrameNumber, TheoreticalFrame, tempsecoule*1000, ProcessingTime * 1000, Derive, ProcessingTimeWithDelay*1000,ff);
-//	if (Options.verbose_flag) fprintf(stderr, "Frame=%d   Theortical frame = %d   Global time = %lf et ff=%lf \n",CurrentFrameNumber, TheoreticalFrame, tempsecoule * 1000,ff);
+//	if (Options.verbose_flag) fprintf(fp_log, "Frame=%d   Theortical frame = %d   Global time = %lf et ff=%lf \n",CurrentFrameNumber, TheoreticalFrame, tempsecoule * 1000,ff);
 
 	if (TheoreticalFrame > CurrentFrameNumber)
 	{
-		fprintf(stderr, "image skipped=%d\n", TheoreticalFrame - CurrentFrameNumber);
+		if (Options.verbose_flag) fprintf(fp_log, "image skipped=%d\n", TheoreticalFrame - CurrentFrameNumber);
 		CurrentFrameNumber = TheoreticalFrame;
 		Derive = 0;
 		if (CurrentFrameNumber >= last_frame - 1) CurrentFrameNumber = last_frame - 1;
@@ -950,7 +985,7 @@ void CPlayer::EndAndClear(bool LastTime)
 		nvjpeg2kDecodeStateDestroy(decode_state);
 		nvjpeg2kDestroy(nvjpeg2k_handle);
 	}
-	printf("\nPlayer end - Press any Key\n\n");
+	//printf("\nPlayer end - Press any Key\n\n");
 	if (MyAudioDevice && LastTime) SDL_PauseAudioDevice(Audiodev, SDL_TRUE);
 
 	// if (mywin != NULL && LastTime)
@@ -971,15 +1006,21 @@ void CPlayer::EndAndClear(bool LastTime)
 	if (out) SDL_FreeSurface(out);
 	if (out_swap) SDL_FreeSurface(out_swap);
 	out = out_swap = NULL;
-	if (Font) TTF_CloseFont(Font); 
+	if (Font32) TTF_CloseFont(Font32); 
+	if (Font64) TTF_CloseFont(Font64);
 	if (LastTime)
 	{
+		if (MyAudioDevice)
+		{
+			SDL_ClearQueuedAudio(Audiodev);
+			SDL_CloseAudioDevice(Audiodev);
+		}
 		if (mywin) SDL_DestroyWindow(mywin);
-		if (MyAudioDevice) SDL_CloseAudioDevice(Audiodev);
 		SDL_Quit();
 		if (Lut22 != NULL) free(Lut22);
 		if (Lut26 != NULL) free(Lut26);
-		TTF_Quit();		
+		TTF_Quit();	
+		if (fp_log) fclose(fp_log);
 	}
 
 	if (GlobalBufferOneFrame!=NULL) free(GlobalBufferOneFrame) ;
@@ -995,6 +1036,7 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 {
 	SDL_Rect MessageRect; //create a rect
 	SDL_Texture* TextTexture;
+ 	double ScaleFont = (Mem.win_h) / 2160.0; // 1.0 for 2160 and 0.5 for 1080
 
 	Mem.Background_Tx = SDL_CreateTextureFromSurface(Renderer, Mem.scr);
 	SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
@@ -1019,11 +1061,12 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 		{
 			MessageRect.x = 10;
 			MessageRect.y = 10;
+
 			SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
 			SDL_DestroyTexture(TextTexture);
 		}
-		else
-			fprintf(stderr, "Error in frame information printing\n");
+		//else
+		//	if (Options.verbose_flag) fprintf(fp_log, "Error in frame information printing\n");
 	}
 	if (Mem.IncrustFps)
 	{
@@ -1037,8 +1080,8 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 			SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
 			SDL_DestroyTexture(TextTexture);
 		}
-		else
-			fprintf(stderr, "Error in frame information printing\n");
+		//else
+		//	if (Options.verbose_flag) fprintf(fp_log, "Error in frame information printing\n");
 
 	}
 
@@ -1093,7 +1136,7 @@ void CPlayer::StateMachine()
 
 						loop = false;
 						NextState = PLAY;
-						if (Options.verbose_flag) fprintf(stderr, "Paused \n\n");
+						if (Options.verbose_flag) fprintf(fp_log, "Paused \n\n");
 						NbProcFrame = 1;
 						RestartLoop = true;
 					}
@@ -1109,7 +1152,7 @@ void CPlayer::StateMachine()
 						RestartLoop = true;
 						NextState = PAUSE;	
 						loop = false;
-						if (Options.verbose_flag)  fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber);
+						if (Options.verbose_flag)  fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
 					}
 					if (event.key.keysym.sym == SDLK_LEFT)
 					{
@@ -1118,7 +1161,7 @@ void CPlayer::StateMachine()
 						RestartLoop = true;
 						NextState = PAUSE;
 						loop = false;
-						if (Options.verbose_flag) fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber);
+						if (Options.verbose_flag) fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
 					}
 
 					if (event.key.keysym.sym == SDLK_UP)
@@ -1129,7 +1172,7 @@ void CPlayer::StateMachine()
 						RestartLoop = true;
 						NextState = PAUSE;
 						loop = false;
-						if (Options.verbose_flag) fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber);
+						if (Options.verbose_flag) fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
 					}
 
 					if (event.key.keysym.sym == SDLK_DOWN)
@@ -1139,7 +1182,7 @@ void CPlayer::StateMachine()
 						RestartLoop = true;
 						NextState = PAUSE;
 						loop = false;
-						if (Options.verbose_flag)  fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber);
+						if (Options.verbose_flag)  fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
 					}
 
 
@@ -1185,13 +1228,13 @@ void CPlayer::StateMachine()
 					CurrentFrameNumber = min(CurrentFrameNumber + Incrementation, frame_count);
 					Refresh = true;
 					NextState = PLAY;
-					if (Options.verbose_flag)  {fprintf(stderr, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(stderr, "inc % d\n", Incrementation);}
+					if (Options.verbose_flag)  {fprintf(fp_log, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(fp_log, "inc % d\n", Incrementation);}
 				}
 				if (event.key.keysym.sym == SPACEBAR)
 				{
 					if (loop == true)  NextState = PAUSE;
 					SDL_PauseAudioDevice(Audiodev, SDL_TRUE);
-					if (Options.verbose_flag)  fprintf(stderr, "Paused - Current frame=%d\n\n", CurrentFrameNumber); 
+					if (Options.verbose_flag)  fprintf(fp_log, "Paused - Current frame=%d\n\n", CurrentFrameNumber); 
 				}
 
 				if (event.key.keysym.sym == SDLK_LEFT)
@@ -1199,7 +1242,7 @@ void CPlayer::StateMachine()
 					if (CurrentFrameNumber > Incrementation) CurrentFrameNumber = CurrentFrameNumber - Incrementation; else CurrentFrameNumber = 0;
 					Refresh = true;
 					NextState = PLAY;
-					if (Options.verbose_flag)  {fprintf(stderr, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(stderr, "dec %d\n", Incrementation);}
+					if (Options.verbose_flag)  {fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(fp_log, "dec %d\n", Incrementation);}
 
 				}
 				if (event.type == SDL_MOUSEBUTTONUP)
@@ -1384,14 +1427,14 @@ bool CPlayer::SelectAudioDeviceInitAudio()
 	MyAudioDevice = SDL_GetAudioDeviceName(Options.AudioDevice, 0);
 	if (MyAudioDevice == NULL)
 	{
-		fprintf(stderr, "Audio device %d not available, please choose another number from following list\n", Options.AudioDevice);
+		if (Options.verbose_flag) fprintf(fp_log, "Audio device %d not available, please choose another number from following list\n", Options.AudioDevice);
 		const char* Proposition;
 		int n = 0;
 		SDL_Init(SDL_INIT_AUDIO);
 		do
 		{
 			Proposition = SDL_GetAudioDeviceName(n, 0);
-			if (Proposition) fprintf(stderr, "Device %d is %s\n", n++, Proposition);
+			if (Proposition) if (Options.verbose_flag) fprintf(fp_log, "Device %d is %s\n", n++, Proposition);
 
 		} while (Proposition);
 		return false;

@@ -59,6 +59,7 @@ public :
 	~CPlayer();
 
 	STATE NextState;
+	FILE* fp_log;
 
 	int getTickCount();
 	int getTickFrequency();
@@ -111,6 +112,8 @@ public :
 	vector <SubTitle> MySubTitles;
 
 	TTF_Font* Font;
+	TTF_Font* Font64;
+	TTF_Font* Font32;
 
 	PCM::MXFReader     *pReaderPCM;
 	PCM::FrameBuffer   *pFrameBufferPCM;
@@ -156,6 +159,7 @@ public :
 	bool OutEscape ;
 	Uint32 TimeCodeRate;
 	Uint32 TheoreticalFrame;
+	int FontSize;
 
 	std::vector<unsigned short> vchanR;
 	std::vector<unsigned short> vchanG;
@@ -177,7 +181,7 @@ public :
 	Result_t InitialisationReaders(CDcpParse& DcpParse, bool FirstTime,  CReel *ptrReel_i);
 	Result_t InitialisationJ2K();
 	bool PrepareXYZ2RGBLUT();
-	Result_t Read_timed_text_file(const Kumu::IFileReaderFactory& fileReaderFactory, string inputFile, fs::path full_path, TTF_Font*& FontSub);
+	Result_t Read_timed_text_file(const Kumu::IFileReaderFactory& fileReaderFactory, string inputFile, fs::path full_path);
 	static void PrepareFirstAudioBuffering(void *Param);
 	Result_t DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame);
 	Result_t MainLoop(bool WaitAfterFirstFrame);

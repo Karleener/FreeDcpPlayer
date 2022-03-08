@@ -104,6 +104,7 @@ struct SMemoire
 	bool IncrustPosition;
 	float DisplayFps;
 	bool IncrustFps;
+
 };
 struct LineSub
 {

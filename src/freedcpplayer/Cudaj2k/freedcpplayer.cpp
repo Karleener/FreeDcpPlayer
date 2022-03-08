@@ -58,7 +58,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "pugixml.hpp"
 #include "nvjpeg2k.h"
 
-
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -135,145 +134,42 @@ Options:\n\
 //
 
 
-
-
-
-// read ASSETMAP
-// ASSUMING ONE VIDEO mxf file, ONE AUDIO mxf file, optionnally one SUBTITLE mxf file
-void ParseDCP(vector<string>& MxfFiles, string MyPath)
-{
-	pugi::xml_document doc;
-	//string source = "c:\\video\\cro\\ASSETMAP.xml";
-	//string source2 = "L:\\LACC DCP\\scope2k court\\accompagnantes\\Accompagnantes_SHR-2_S_Fr-EN_FR-NR_51_2K_karleener_20171222_24fps_SMPTE_OV\\ASSETMAP.xml";
-	//string Mypath = "c:\\video\\cro\\"; //"L:\\LACC DCP\\scope2k court\\accompagnantes\\Accompagnantes_SHR-2_S_Fr-EN_FR-NR_51_2K_karleener_20171222_24fps_SMPTE_OV\\";
-	string source = MyPath + "/ASSETMAP.xml";
-	pugi::xml_parse_result res = doc.load_file(source.c_str());
-	vector <string> NomFichiermxf;
-	MxfFiles.resize(3);
-	MxfFiles[0] = ""; // video file name
-	MxfFiles[1] = ""; // audio file name
-	MxfFiles[2] = ""; // subtitle file name
-
-	if (res)
-	{
-		//cout << "XML [" << source << "] parsed without errors, attr value: [" << doc.child("AssetMap").child("AssetList").child("Asset").child("ChunkList").child("Chunk").child("Path").first_child().value() << "]\n\n";
-
-		pugi::xml_node assets = doc.child("AssetMap").child("AssetList");
-		for (pugi::xml_node asset = assets.first_child(); asset; asset = asset.next_sibling())
-		{
-			//std::cout << "asset:";
-
-			for (pugi::xml_node attr = asset.first_child(); attr; attr = attr.next_sibling())
-			{
-				//std::cout << " " << attr.name() << "=" << attr.value()<<endl;
-				string temp = attr.name();
-				if (temp == "ChunkList")
-				{
-					for (pugi::xml_node chunk = attr.first_child(); chunk; chunk = chunk.next_sibling())
-					{
-						for (pugi::xml_node Path = chunk.first_child(); Path; Path = Path.next_sibling())
-						{
-							fs::path tempp = Path.first_child().value();
-							if (string(Path.name()) =="Path") 
-								if (tempp.extension() == ".mxf")
-									NomFichiermxf.push_back(tempp.string());
-						}
-					}
-
-				}
-			}
-
-			//std::cout << std::endl;
-		} 
-
-	}
-
-	Kumu::FileReaderFactory defFactory;
-	EssenceType_t EssenceType;
-	for (int i = 0; i < NomFichiermxf.size(); i++)
-	{
-		string FileName = MyPath + '/'+ NomFichiermxf[i];
-		Result_t resEssense = ASDCP::EssenceType(FileName, EssenceType, defFactory);
-
-		if (ASDCP_SUCCESS(resEssense))
-		{
-			switch (EssenceType)
-			{
-			case ESS_MPEG2_VES:
-
-				break;
-
-			case ESS_JPEG_2000:
-				MxfFiles[0] = FileName;
-				break;
-
-			case ESS_JPEG_2000_S:
-
-				break;
-
-			case ESS_PCM_24b_48k:
-			case ESS_PCM_24b_96k:
-				MxfFiles[1] = FileName;
-				break;
-
-			case ESS_TIMED_TEXT:
-				MxfFiles[2] = FileName;
-				break;
-
-			case ESS_DCDATA_UNKNOWN:
-
-				break;
-
-			case ESS_DCDATA_DOLBY_ATMOS:
-
-				break;
-
-			default:
-				fprintf(stderr, "%s: Unknown file type, not ASDCP essence.\n", FileName.c_str());
-				break;
-			}
-		} // if success
-	} //for
-
-} // end dcp parse
-
-
-int main(int argc, const char** argv)
+int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 {
 	//SetConsoleOutputCP(CP_UTF8);
+	
 
 #ifdef _DEBUG
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	printf("FreeDcpPlayer version 0.3.3\n\n");
+	//printf("FreeDcpPlayer version 0.4.0\n\n");
 	fs::path full_path = (fs::path(argv[0]).parent_path());
 
-	//Without file name
-	//std::cout << full_path.stem() << std::endl;
-
+	fs::path PathLog = full_path;
+	PathLog /= "freedcpplayer.log";
+	string LogFileName{ PathLog.string() };
+	if (exists(PathLog))
+	{
+		fs::remove(PathLog);
+	}
+	FILE *fp_log = NULL;
+	fp_log = fopen(LogFileName.c_str(), "a+");
 
 	vector<string> MxfFiles;
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(stderr, "FreeDcpPlayer version 0.3.3\n");
-	if (Options.version_flag)
-		banner();
-
-	if (Options.help_flag)
-		usage();
-
-	if (Options.version_flag || Options.help_flag)
-		return 0;
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.0\n");
 
 	if (Options.error_flag)
 	{
-		fprintf(stderr, "There was a problem. Type %s -h for help.\n", PROGRAM_NAME);
+		fprintf(fp_log, "There was a problem. Did you choose a DCP folder ?\n");
+		if (fp_log) fclose(fp_log);
+		IsPlaying = false;
 		return 3;
 	}
-
-	//ParseDCP(MxfFiles, Options.input_filename);
+	
 	CDcpParse DcpParse(Options.verbose_flag);
 	string DcpPath = Options.input_filename;
 	DcpParse.ParseDCP(MxfFiles, Options.input_filename);
@@ -281,11 +177,11 @@ int main(int argc, const char** argv)
 	int Totalduration = 0;
 	if (DcpParse.CplVector.size() <= CplIndex)
 	{
-		fprintf(stderr, "CPL index %d not found",CplIndex); return 3;
+		fprintf(fp_log, "CPL index %d not found",CplIndex); IsPlaying = false; if (fp_log) fclose(fp_log); return 3;
 	}
 	if (!DcpParse.VideoOk || !DcpParse.SoundOk)
 	{
-		fprintf(stderr, "No Video found or no audio found"); return 3;
+		fprintf(fp_log, "No Video found or no audio found"); IsPlaying = false; if (fp_log) fclose(fp_log); return 3;
 	}
 
 	for (int k = 0; k < DcpParse.CplVector[CplIndex]->VecReel.size(); k++)
@@ -308,9 +204,26 @@ int main(int argc, const char** argv)
 	{
 		// Process first reel
 		Result_t Result = pPlayer->InitialisationReaders(DcpParse, true, DcpParse.CplVector[CplIndex]->VecReel[0]);
-		if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); else return RESULT_FAIL;
-		if (ASDCP_SUCCESS(Result))  Result = pPlayer->MainLoop(WaitAfterFirstFrame); else return RESULT_FAIL;
-		if (DcpParse.CplVector[CplIndex]->VecReel.size() > 1) pPlayer->EndAndClear(false); else pPlayer->EndAndClear(true);
+		if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); 
+		else 
+		{
+			IsPlaying = false; 
+			if (fp_log) fclose(fp_log); 
+			return RESULT_FAIL;
+		}
+		if (ASDCP_SUCCESS(Result))  Result = pPlayer->MainLoop(WaitAfterFirstFrame); 	
+		else
+		{
+			IsPlaying = false; 
+			if (fp_log) fclose(fp_log);
+			return RESULT_FAIL;
+		}
+		if (pPlayer->OutEscape) pPlayer->EndAndClear(true);
+		else
+		{
+			if (DcpParse.CplVector[CplIndex]->VecReel.size() > 1) pPlayer->EndAndClear(false);
+			else pPlayer->EndAndClear(true);
+		}
  
 
 		for (int k = 1; k < DcpParse.CplVector[CplIndex]->VecReel.size() && !pPlayer->OutEscape; k++)
@@ -325,8 +238,20 @@ int main(int argc, const char** argv)
 			//for (int d = 0; d < duration; d++) VectVideoReader.push_back(pReader);
 
 			Result_t Result = pPlayer->InitialisationReaders(DcpParse, false, DcpParse.CplVector[CplIndex]->VecReel[k]);
-			if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); else return RESULT_FAIL;
-			if (ASDCP_SUCCESS(Result))  Result = pPlayer->MainLoop(false); else return RESULT_FAIL;
+			if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); 	
+			else
+			{
+				IsPlaying = false; 
+				if (fp_log) fclose(fp_log);
+				return RESULT_FAIL;
+			}
+			if (ASDCP_SUCCESS(Result))  Result = pPlayer->MainLoop(false);
+			else
+			{
+				IsPlaying = false; 
+				if (fp_log) fclose(fp_log);
+				return RESULT_FAIL;
+			}
 			if (k == DcpParse.CplVector[CplIndex]->VecReel.size() - 1) pPlayer->EndAndClear(true);
 			else pPlayer->EndAndClear(false);
 			if (pPlayer->OutEscape) break;
@@ -334,7 +259,8 @@ int main(int argc, const char** argv)
 
 	} // if audio device is selected
 	delete pPlayer;
-
+	IsPlaying = false;
+	if (fp_log) fclose(fp_log);
 	return 0;
 } // end main
 
