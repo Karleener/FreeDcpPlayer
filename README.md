@@ -1,6 +1,6 @@
 # FreeDcpPlayer
 
-Free Dcp Player Nvidia GPU based for independent filmmakers - version 0.3.3
+Free Dcp Player Nvidia GPU based for independent filmmakers - version 0.4.0
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
@@ -15,17 +15,12 @@ SMPTE or Interop, 2k, with stereo or 5.1 soundtrack, and optionally subtitles, n
 
 A new wxWidgets based interface allows to lunch the main program, x64 anx Ubuntu compatible.
 
-The command line is for example for audio device 0 and display 0 , assuming c:/mydcp/ contains the file ASSETMAP.xml
-
-FreeDcpPlayer "c:/mydcp" -a 0 -d 0
-
 Interface is keyboard based (Esc to stop, space to play  and pause, and left right arrows for fast rewind or play). 
 image per image mode is possible in paused mode, using up and down arrows.
 User can also double-clic on the picture  : the horizontal position of the click give the start position of the lecture.
 Press “i” to enable or disable progress bar.
 Press "j" to enable or disable current fps information (from the image processing time).
 
-A GUI  is provided to generate the command line : RunMyDcpPlayer_wx.exe
 - Choose the DCP (folder containing ASSETMAP.xml or ASSETMAP file)
 - Choose audio and display device
 - Choose 5.1 output if available.
