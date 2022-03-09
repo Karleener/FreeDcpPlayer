@@ -136,14 +136,13 @@ Options:\n\
 
 int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 {
-	//SetConsoleOutputCP(CP_UTF8);
 	
 
 #ifdef _DEBUG
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	//printf("FreeDcpPlayer version 0.4.0\n\n");
+	
 	fs::path full_path = (fs::path(argv[0]).parent_path());
 
 	fs::path PathLog = full_path;
@@ -160,7 +159,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.0\n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.1\n");
 
 	if (Options.error_flag)
 	{

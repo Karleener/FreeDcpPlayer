@@ -767,7 +767,8 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 	
 	do
 	{
-		DecodeAndScreenFirstFrame(WaitAfterFirstFrame);
+		Result_t resultDecod = DecodeAndScreenFirstFrame(WaitAfterFirstFrame);
+		if (!ASDCP_SUCCESS(resultDecod)) return RESULT_FAIL;
 		offset_frame = start_frame-1;
 
 		AtimerinitialGlobal = MyGetCurrentTime();
