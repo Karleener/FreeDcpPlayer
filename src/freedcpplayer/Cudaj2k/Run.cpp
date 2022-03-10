@@ -163,16 +163,22 @@ void Run::m_dirPicker2OnDirChanged( wxFileDirPickerEvent& event )
 
 	vector<string> MXFFiles;
 	DcpParse.ParseDCP(MXFFiles, ChoosenDir);
-	m_choiceCPL->Clear();
-
-	for (int i = 0; i < DcpParse.CplVector.size(); i++)
+	if (DcpParse.CplOk && DcpParse.VideoOk && DcpParse.SoundOk && DcpParse.EditRateOk)
 	{
-		string temp(DcpParse.CplVector[i]->sAnnotation);
-		temp += " (" + to_string(i) + ")";
-		m_choiceCPL->Append(temp.c_str());
+		m_choiceCPL->Clear();
+
+		for (int i = 0; i < DcpParse.CplVector.size(); i++)
+		{
+			string temp(DcpParse.CplVector[i]->sAnnotation);
+			temp += " (" + to_string(i) + ")";
+			m_choiceCPL->Append(temp.c_str());
+		}
+		m_choiceCPL->SetSelection(0);
+		UpdateCommand();
 	}
-	m_choiceCPL->SetSelection(0);
-	UpdateCommand();
+	else
+		m_staticText_Command->SetLabelText("Dcp parsing error, please choose another folder");
+
 }
 
 void Run::m_choiceAudioOnChoice( wxCommandEvent& event )

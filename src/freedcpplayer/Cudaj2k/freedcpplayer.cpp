@@ -159,7 +159,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.1\n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.2\n");
 
 	if (Options.error_flag)
 	{
@@ -217,11 +217,20 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 			if (fp_log) fclose(fp_log);
 			return RESULT_FAIL;
 		}
-		if (pPlayer->OutEscape) pPlayer->EndAndClear(true);
+		if (ASDCP_SUCCESS(Result))
+		{
+			if (pPlayer->OutEscape) pPlayer->EndAndClear(true);
+			else
+			{
+				if (DcpParse.CplVector[CplIndex]->VecReel.size() > 1) pPlayer->EndAndClear(false);
+				else pPlayer->EndAndClear(true);
+			}
+		}
 		else
 		{
-			if (DcpParse.CplVector[CplIndex]->VecReel.size() > 1) pPlayer->EndAndClear(false);
-			else pPlayer->EndAndClear(true);
+			IsPlaying = false;
+			if (fp_log) fclose(fp_log);
+			return RESULT_FAIL;
 		}
  
 
