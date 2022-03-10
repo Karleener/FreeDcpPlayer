@@ -1,4 +1,4 @@
-# FreeDcpPlayer
+# Free Dcp Player
 
 Free Dcp Player Nvidia GPU based for independent filmmakers - version 0.4.2
 
