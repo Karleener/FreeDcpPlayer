@@ -3,7 +3,7 @@
 Free Dcp Player Nvidia GPU based for independent filmmakers - version 0.4.2
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
-- Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
+- Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only i.e. from series 10, such as GTX 1060) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
 - Asdcplib (https://github.com/cinecert/asdcplib)
 - SDL2 (https://www.libsdl.org/download-2.0.php)
 - SDL_TTF (https://github.com/libsdl-org/SDL_ttf)
@@ -26,7 +26,9 @@ Press "j" to enable or disable current fps information (from the image processin
 - Choose 5.1 output if available.
 - Clic on "Run FreeDcpPlayer"
 
-This version has been tested with a Geforce 1060.
+This version has been tested sucessfully with a Geforce 1060, 1070, 2080.
+
+The program won't work on Maxwell architecture or older (GTX 9xx series)
 
 If you disable "Full resolution" , image is screened with a 100% scale (One screen pixel = one image pixel).
 
