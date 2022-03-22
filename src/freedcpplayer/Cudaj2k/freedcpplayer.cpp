@@ -159,7 +159,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.2\n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.3\n");
 
 	if (Options.error_flag)
 	{

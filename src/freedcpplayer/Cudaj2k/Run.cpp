@@ -248,8 +248,16 @@ void Run::m_button_runOnButtonClick( wxCommandEvent& event )
 
 void Run::m_button_quitOnButtonClick( wxCommandEvent& event )
 {
-	EndModal(true);
-	Destroy();
+	if (!m_IsPlaying)
+	{
+		EndModal(true);
+		Destroy();
+	}
+	else
+	{
+		m_Com = "Player is running - Please clic on the display window and press 'Esc' to stop the player first";
+		m_staticText_Command->SetLabelText(m_Com);
+	}
 }
 
 void Run::m_button_helpOnButtonClick(wxCommandEvent& event)
@@ -259,6 +267,7 @@ void Run::m_button_helpOnButtonClick(wxCommandEvent& event)
 	const char* mes =
 		"o Press space bar for play / pause\n"
 		"o Use left and right arrows for fast forward and rewind\n"
+		"o Use page up and page down for very fast forward and rewind\n"
 		"o Use Up and Down arrows for image per image in paused mode\n"
 		"o Use double mouse left click in the picture as an horizontal slider to move forward or backward\n"
 		"o Press  ESC key to end the program\n"

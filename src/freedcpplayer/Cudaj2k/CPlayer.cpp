@@ -1116,8 +1116,8 @@ void CPlayer::StateMachine()
 	
 	SDL_Event event;
   	event.type = 0;
-	int Incrementation = frame_count / 10;
-
+	int Incrementation = max(frame_count / 20,2);
+	int PageIncrementation = max(frame_count / 10,2);
 //	SDL_FlushEvents(0, SDL_LASTEVENT);
 	SDL_PollEvent(&event);
 	bool loop = true;
@@ -1146,6 +1146,25 @@ void CPlayer::StateMachine()
 					{
 						loop = false;
 					} 
+					if (event.key.keysym.sym == SDLK_PAGEUP)
+					{
+						// do not restart audio since next state = pause
+						CurrentFrameNumber = min(CurrentFrameNumber + PageIncrementation, frame_count);
+						RestartLoop = true;
+						NextState = PAUSE;
+						loop = false;
+						if (Options.verbose_flag)  fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
+					}
+					if (event.key.keysym.sym == SDLK_PAGEDOWN)
+					{
+						// do not restart audio since next state = pause
+						if (CurrentFrameNumber > PageIncrementation) CurrentFrameNumber = CurrentFrameNumber - PageIncrementation; else CurrentFrameNumber = 0;
+						RestartLoop = true;
+						NextState = PAUSE;
+						loop = false;
+						if (Options.verbose_flag)  fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber);
+					}
+
 					if (event.key.keysym.sym == SDLK_RIGHT )
 					{
 						// do not restart audio since next state = pause
@@ -1168,7 +1187,6 @@ void CPlayer::StateMachine()
 					if (event.key.keysym.sym == SDLK_UP)
 					{
 						// do not restart audio since next state = pause
-						//CurrentFrameNumber = min(CurrentFrameNumber + 1, frame_count);
 						// CurrentFrameNumber will be incremented in the main loop
 						RestartLoop = true;
 						NextState = PAUSE;
@@ -1220,9 +1238,15 @@ void CPlayer::StateMachine()
 		{
 			if (event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_LEFT ||
 				event.type == SDL_MOUSEBUTTONUP || event.key.keysym.sym == SDLK_UP ||
-				event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SPACEBAR)
+				event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SPACEBAR || event.key.keysym.sym == SDLK_PAGEUP || event.key.keysym.sym == SDLK_PAGEDOWN  )
 			{
 				bool Refresh = false;
+				if (event.key.keysym.sym == SPACEBAR)
+				{
+					if (loop == true)  NextState = PAUSE;
+					SDL_PauseAudioDevice(Audiodev, SDL_TRUE);
+					if (Options.verbose_flag)  fprintf(fp_log, "Paused - Current frame=%d\n\n", CurrentFrameNumber);
+				}
 
 				if (event.key.keysym.sym == SDLK_RIGHT)
 				{
@@ -1231,12 +1255,6 @@ void CPlayer::StateMachine()
 					NextState = PLAY;
 					if (Options.verbose_flag)  {fprintf(fp_log, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(fp_log, "inc % d\n", Incrementation);}
 				}
-				if (event.key.keysym.sym == SPACEBAR)
-				{
-					if (loop == true)  NextState = PAUSE;
-					SDL_PauseAudioDevice(Audiodev, SDL_TRUE);
-					if (Options.verbose_flag)  fprintf(fp_log, "Paused - Current frame=%d\n\n", CurrentFrameNumber); 
-				}
 
 				if (event.key.keysym.sym == SDLK_LEFT)
 				{
@@ -1244,8 +1262,23 @@ void CPlayer::StateMachine()
 					Refresh = true;
 					NextState = PLAY;
 					if (Options.verbose_flag)  {fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(fp_log, "dec %d\n", Incrementation);}
-
 				}
+				if (event.key.keysym.sym == SDLK_PAGEUP)
+				{
+					CurrentFrameNumber = min(CurrentFrameNumber + PageIncrementation, frame_count);
+					Refresh = true;
+					NextState = PLAY;
+					if (Options.verbose_flag) { fprintf(fp_log, "Current frame = % d\n\n", CurrentFrameNumber); fprintf(fp_log, "inc % d\n", PageIncrementation); }
+				}
+
+				if (event.key.keysym.sym == SDLK_PAGEDOWN)
+				{
+					if (CurrentFrameNumber > PageIncrementation) CurrentFrameNumber = CurrentFrameNumber - PageIncrementation; else CurrentFrameNumber = 0;
+					Refresh = true;
+					NextState = PLAY;
+					if (Options.verbose_flag) { fprintf(fp_log, "Current frame=%d\n\n", CurrentFrameNumber); fprintf(fp_log, "dec %d\n", PageIncrementation); }
+				}
+
 				if (event.type == SDL_MOUSEBUTTONUP)
 				{
 					if (event.button.clicks == 2 && event.button.button == SDL_BUTTON_LEFT)

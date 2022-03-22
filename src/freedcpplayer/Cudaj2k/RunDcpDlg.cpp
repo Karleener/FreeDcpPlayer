@@ -99,7 +99,7 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_staticText_Command->Wrap(-1);
 	fgSizer1->Add(m_staticText_Command, 0, wxALL, 5);
 
-	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.4.2"), wxDefaultPosition, wxDefaultSize, 0);
+	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.4.3"), wxDefaultPosition, wxDefaultSize, 0);
 	m_About1->Wrap(-1);
 	fgSizer1->Add(m_About1, 0, wxALL, 5);
 
