@@ -26,7 +26,7 @@ Press "j" to enable or disable current fps information (from the image processin
 - Choose 5.1 output if available.
 - Clic on "Run FreeDcpPlayer"
 
-This version has been tested sucessfully with a Geforce 1060, 1070, 2080.
+This version has been tested sucessfully with a Geforce 1060, 1070, 2080,3050, under Windows 10 , Windows 11, and Ubuntu 20.04
 
 The program won't work on Maxwell architecture or older (GTX 9xx series)
 
