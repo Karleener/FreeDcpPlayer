@@ -7,6 +7,7 @@ FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly base
 - Asdcplib (https://github.com/cinecert/asdcplib)
 - SDL2 (https://www.libsdl.org/download-2.0.php)
 - SDL_TTF (https://github.com/libsdl-org/SDL_ttf)
+- Wxwidgets (https://www.wxwidgets.org/downloads/)
 
 Some part of the code is partially inspired from VLC DCP project from Nicolas Bertrand.
 
