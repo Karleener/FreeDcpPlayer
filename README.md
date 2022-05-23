@@ -16,7 +16,7 @@ SMPTE or Interop, 2k, with stereo or 5.1 soundtrack, and optionally subtitles, n
 
 A new wxWidgets based interface allows to lunch the main program, x64 anx Ubuntu compatible.
 
-Interface is keyboard based (Esc to stop, space to play  and pause, and left right arrows for fast rewind or play). 
+Interface is keyboard based (Esc to stop, space bar to play and pause, and left right arrows for fast rewind or play). 
 image per image mode is possible in paused mode, using up and down arrows.
 User can also double-clic on the picture  : the horizontal position of the click give the start position of the lecture.
 Press “i” to enable or disable progress bar.
@@ -26,6 +26,7 @@ Press "j" to enable or disable current fps information (from the image processin
 - Choose audio and display device
 - Choose 5.1 output if available.
 - Clic on "Run FreeDcpPlayer"
+- Press space bar to start playing
 
 This version has been tested sucessfully with a Geforce 1060, 1070, 2080,3050, under Windows 10 , Windows 11, and Ubuntu 20.04
 
@@ -56,5 +57,5 @@ For beta tester : in case of problem, you can send me the file freedcpplayer.log
 Minor modifications 22/03/22 - version 0.4.3
 - added fast navigation with page up and page down keys (10% of reel duration)
 - navigation with left and right keys are now 5% of reel duration
-- disable the possibility to quit the interface while player is running: use have to end the player first using 'esc'.
+- disable the possibility to quit the interface while player is running: user have to end the player first using 'esc'.
 - added openjpeg licence which is used by Nvidia nvjpeg2000 library
