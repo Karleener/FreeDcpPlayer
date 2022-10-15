@@ -1,6 +1,6 @@
 # Free Dcp Player
 
-Free Dcp Player Nvidia GPU based for independent filmmakers
+Free Dcp Player Nvidia GPU based for independent filmmakers - New version 0.6.0 - Support 4K DCP !!
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only i.e. from series 10, such as GTX 1060) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
@@ -12,7 +12,7 @@ FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly base
 Some part of the code is partially inspired from VLC DCP project from Nicolas Bertrand.
 
 The current version of FreeDcpPlayer,  is in a beta state, for testing purpose only, limited to simple DCP :
-SMPTE or Interop, 2k, with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
+SMPTE or Interop, 2k and 4k (version 0.6.0), with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
 
 A new wxWidgets based interface allows to lunch the main program, x64 anx Ubuntu compatible.
 
@@ -33,6 +33,7 @@ This version has been tested sucessfully with a Geforce 1060, 1070, 2080,3050, u
 The program won't work on Maxwell architecture or older (GTX 9xx series)
 
 If you disable "Full resolution" , image is screened with a 100% scale (One screen pixel = one image pixel).
+Real time 4k decoding/rendering can be slow. You can "Enable Half resolution decoding" in order to accelerate.
 
 The program will generate a freedcpplayer.log file if the box “Log” is checked.
 
@@ -53,6 +54,14 @@ to check their DCP on their PC after generating their own DCP with Da Vinci Reso
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 For beta tester : in case of problem, you can send me the file freedcpplayer.log to the email adresse  : karleener at orange.fr
+
+
+Major modifications 15/10/22 - version 0.6.0
+- Add 4k decoding thanks to the 0.6.0 version of nvjpeg2000 by Nvidia
+- Half resolution decoding option (full resolution by default)
+- direct play without pause
+Note that if you change the hardware (adding/removing a screen or audio itnerface), it is necessary to close FreeDcpPlayer, delete the config.txt file, then restart FreeDcpPlayer
+
 
 Minor modifications 22/03/22 - version 0.4.3
 - added fast navigation with page up and page down keys (10% of reel duration)
