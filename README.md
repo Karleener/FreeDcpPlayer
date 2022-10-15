@@ -60,7 +60,8 @@ Major modifications 15/10/22 - version 0.6.0
 - Add 4k decoding thanks to the 0.6.0 version of nvjpeg2000 by Nvidia
 - Half resolution decoding option (full resolution by default)
 - direct play without pause
-Note that if you change the hardware (adding/removing a screen or audio itnerface), it is necessary to close FreeDcpPlayer, delete the config.txt file, then restart FreeDcpPlayer
+
+Note that if you change the hardware (adding/removing a screen or audio interface), it is necessary to close FreeDcpPlayer, delete the config.txt file, then restart FreeDcpPlayer
 
 
 Minor modifications 22/03/22 - version 0.4.3
