@@ -96,6 +96,7 @@ struct SMemoire
 	int width;
 	unsigned short int* pLut26;
 	unsigned short* pLut22;
+	unsigned char* pLut22_c;
 	int win_w;
 	int win_h;
 	int base; // for subtitle

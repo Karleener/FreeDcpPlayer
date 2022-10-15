@@ -30,6 +30,43 @@ float MyCoefXYZ[3][3] = { {3.2404542, -1.5371385, -0.4985314},
 			{-0.9692660, 1.8760108, 0.0415560},
 			{0.0556434, -0.2040259,  1.0572252 } };
 
+
+int MyCoefXYZ_i[3][3] = { {53092, -25184, -8168},
+			{-15880, 30737, 681},
+			{912, -3343,  17322 } };
+
+//void CPlayer::determine_tiles_to_decode(const nvjpeg2kImageInfo_t& image_info, decode_params_t& params,	vector<partial_decode_info>& tile_window_data)
+//{
+//	uint32_t tile_id = 0;
+//	for (uint32_t tile_y0 = 0; tile_y0 < image_info.image_height; tile_y0 += image_info.tile_height)
+//	{
+//		for (uint32_t tile_x0 = 0; tile_x0 < image_info.image_width; tile_x0 += image_info.tile_width)
+//		{
+//			// include min and max functions in braces for windows builds issues
+//			uint32_t tile_y1 = (std::min)(tile_y0 + image_info.tile_height, image_info.image_height);
+//			uint32_t tile_x1 = (std::min)(tile_x0 + image_info.tile_width, image_info.image_width);
+//
+//			if (params.win_x0 < tile_x1 && params.win_x1 > tile_x0 &&
+//				params.win_y0 < tile_y1 && params.win_y1 > tile_y0)
+//			{
+//				partial_decode_info decode_data;
+//				decode_data.tile_id = tile_id;
+//				decode_data.win_tilex0 = (std::max)(tile_x0, params.win_x0);
+//				decode_data.win_tilex1 = (std::min)(tile_x1, params.win_x1);
+//				decode_data.win_tiley0 = (std::max)(tile_y0, params.win_y0);
+//				decode_data.win_tiley1 = (std::min)(tile_y1, params.win_y1);
+//				tile_window_data.push_back(decode_data);
+//
+//			}
+//			tile_id++;
+//
+//		}
+//	}
+//}
+
+
+
+
 CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& fileReaderFactory_i, fs::path full_path_i)
 	
 {
@@ -65,6 +102,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	bytes_per_element = 2; // 12 bit images
 	Lut26 = NULL;
 	Lut22 = NULL;
+	Lut22_c = NULL;
 
 	start_frame = Options.start_frame;
 	NumBlock = 0;
@@ -95,6 +133,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 
 Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CReel *ptrReel_i)
 {
+	DecodeLevel = 0;
 	Font = Font32 = Font64 =  NULL;
 	OutEscape = false;
 	TimeCodeRate = 0;
@@ -261,6 +300,7 @@ Result_t CPlayer::InitialisationJ2K()
 	//PrepareXYZ2RGBLUT();
 
 	pReader->FillPictureDescriptor(PDesc);
+	DecodeLevel = PDesc.CodingStyleDefault.SPcod.DecompositionLevels;
 	//frame_count = PDesc.ContainerDuration;
 	frame_count = ptrReel->ptrMainPicture->iDuration;
 	if (Options.verbose_flag)
@@ -297,19 +337,32 @@ bool CPlayer::PrepareXYZ2RGBLUT()
 {
 	if (Lut26 != NULL) free(Lut26);
 	if (Lut22 != NULL) free(Lut22);
+	if (Lut22_c != NULL) free(Lut22_c);
 	Lut26 = (unsigned short*)malloc(65536 * sizeof(unsigned short));
 	Lut22 = (unsigned short*)malloc(65536 * sizeof(unsigned short));
+	Lut22_c = (unsigned char*)malloc(65536 * sizeof(unsigned char));
 	if (Lut26 == NULL || Lut22 == NULL) return false;
 	double gamma26 = 2.6;
 	double gamma22 = 1.0 / 2.2;
 	static unsigned short int maxs = 0XFFFF;
+	//FILE* t1, * t2;
+	//t1 = fopen("lut26.csv", "w");
+	//t2 = fopen("lut22.csv", "w");
 	for (int i = 0; i <= 0xFFFF; i++)
 	{
-		double p = /*saturate_cast<ushort>*/(maxs * pow((double)i / (double(maxs)), gamma26));
-		Lut26[i] = (unsigned short int)p; // faire un cast avec verif
+		double p = (maxs * pow((double)i / (double(maxs)), gamma26));
+		Lut26[i] = (unsigned short int)p; 
+
+	//	fprintf(t1, "%d\n", Lut26[i]);
+
 		p = /*saturate_cast<ushort>*/(maxs * pow((double)i / (double(maxs)), gamma22));
 		Lut22[i] = (unsigned short int)p; // faire un cast avec verif
+		Lut22_c[i] = (unsigned char)(Lut22[i]>>8); 
+
+	//	fprintf(t2, "%d\n", Lut22[i]);
 	}
+	//fclose(t1);
+	//fclose(t2);
 	return true;
 }
 
@@ -669,8 +722,17 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 			tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL;
 		}
 	}
-	height = image_comp_info[0].component_height;
-	width = image_comp_info[0].component_width;
+
+	if (Options.HalfResolution)
+	{
+		height = image_comp_info[0].component_height / 2; // half resolution
+		width = image_comp_info[0].component_width / 2;// half resolution
+	}
+	else
+	{
+		height = image_comp_info[0].component_height;
+		width = image_comp_info[0].component_width;
+	}
 
 	if (mywin == NULL)
 	{
@@ -705,7 +767,12 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	output_image.num_components = NUM_COMPONENTS;
 	bool loop = true;
 
-	nvjpeg2kStatus_t status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
+
+	nvjpeg2kStatus_t status;
+	if (Options.HalfResolution)status = nvjpeg2kDecodeTile(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, 0, DecodeLevel, &output_image, 0); // 5 for 4k at half resolution
+	else  status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
+
+
 	if (etat != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda decoding failed\n"); tPrepAudio->join(); delete tPrepAudio; return RESULT_FAIL; }
 	cudaError_t er = cudaDeviceSynchronize();
 	if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda synchronization error\n"); tPrepAudio->join();delete tPrepAudio; return RESULT_FAIL; }
@@ -724,6 +791,7 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	Mem.height = height;
 	Mem.pLut26 = Lut26;
 	Mem.pLut22 = Lut22;
+	Mem.pLut22_c = Lut22_c;
 	Mem.scr = out;
 
 	Mem.win_w = win_w;
@@ -744,13 +812,21 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	Af2 = new thread(ThreadQuarter2, &Mem);
 	Af3 = new thread(ThreadQuarter3, &Mem);
 	Af4 = new thread(ThreadQuarter4, &Mem);
-	if (Af1 && Af2 && Af3 && Af4)
+	Af5 = new thread(ThreadQuarter5, &Mem);
+	Af6 = new thread(ThreadQuarter6, &Mem);
+	Af7 = new thread(ThreadQuarter7, &Mem);
+	Af8 = new thread(ThreadQuarter8, &Mem);
+	if (Af1 && Af2 && Af3 && Af4 && Af5 && Af6 && Af7 && Af8)
 	{
 		//	// wait for end of image drawing
 		Af1->join(); delete Af1; Af1 = NULL;
 		Af2->join(); delete Af2; Af2 = NULL;
 		Af3->join(); delete Af3; Af3 = NULL;
 		Af4->join(); delete Af4; Af4 = NULL;
+		Af5->join(); delete Af5; Af5 = NULL;
+		Af6->join(); delete Af6; Af6 = NULL;
+		Af7->join(); delete Af7; Af7 = NULL;
+		Af8->join(); delete Af8; Af8 = NULL;
 	}
 
   	RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), start_frame, ref(Mem));
@@ -817,25 +893,52 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 					if (Options.verbose_flag) fprintf(fp_log, "\n nvjpeg2kStreamParse in loop failed\n ");
 					//return RESULT_FAIL;
 				}
-				nvjpeg2kStatus_t status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
+
+				auto temps1 = MyGetCurrentTime();
+			
+				nvjpeg2kStreamGetImageInfo(nvjpeg2k_stream, &image_info);
+				nvjpeg2kStatus_t status;
+				if (Options.HalfResolution)status = nvjpeg2kDecodeTile(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, 0, DecodeLevel, &output_image, 0); // 5 for 4k at half resolution
+				else  status = nvjpeg2kDecodeImage(nvjpeg2k_handle, decode_state, nvjpeg2k_stream, decode_params, &output_image, 0); // 0 corresponds to cudaStream_t
+				
 				if (status != NVJPEG2K_STATUS_SUCCESS) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda decoding in loop failed\n");  return RESULT_FAIL; }
 				// image is decoded, still in the GPU memory
 
+				//FILE* fpt = fopen("temps.txt", "a+");
 
-
-				if (Af1 && Af2 && Af3 && Af4)
+				if (Af1 && Af2 && Af3 && Af4 && Af5 && Af6 && Af7 && Af8)
 				{
 					// wait for end of previous image processing from XYZ to RGB
 					Af1->join(); delete Af1; Af1 = NULL;
 					Af2->join(); delete Af2; Af2 = NULL;
 					Af3->join(); delete Af3; Af3 = NULL;
 					Af4->join(); delete Af4; Af4 = NULL;
+					Af5->join(); delete Af5; Af5 = NULL;
+					Af6->join(); delete Af6; Af6 = NULL;
+					Af7->join(); delete Af7; Af7 = NULL;
+					Af8->join(); delete Af8; Af8 = NULL;
 
-					RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
+					//thread disp(RenderImageWithSub,Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
+					//fprintf(fpt, "fin rendu\n");
 				} // if treads ok
+
+#ifdef WIN64
+				// windows support threaded rendering
+				thread disp(RenderImageWithSub, Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
+	
+#else
+				// Linux does not support threaded rendering
+				RenderImageWithSub (Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
+#endif
 
 				// wait for the end of decoding
 				er = cudaDeviceSynchronize();
+
+				//auto temps2 = MyGetCurrentTime();
+				//double tempsdecode = Duration(temps2, temps1);
+				//fprintf(fpt, "%lf\n", tempsdecode*1000.0);
+		
+
 				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n Cuda synchronization in loop error\n");  return RESULT_FAIL; }
 
 
@@ -844,7 +947,7 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				// wait if the process is too fast
 				// skip image is the process is too slow
 				Mem.DisplayFps=Synchronisation();
-				
+
 				//write_image("c:\\video\\dcp16b", "image", output_image, image_info.image_width,image_info.image_height, image_info.num_components, image_comp_info[0].precision, true);
 				
 				// copy decoded image from GPU yo Host memory
@@ -858,6 +961,17 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Green failed\n");  return RESULT_FAIL; }
 				er = cudaMemcpy2D(chanB, (size_t)width * sizeof(unsigned short), output_image.pixel_data[2], pitch_in_bytes[2], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
 				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Blue failed\n");  return RESULT_FAIL; }
+
+#ifdef WIN64
+				// wait the end of rendering
+				disp.join();
+#endif
+
+				//auto temps3 = MyGetCurrentTime();
+				//double tempsdecode2 = Duration(temps3, temps2);
+				//fprintf(fpt, "copie gpu vers cpu %lf ms\n", tempsdecode2 * 1000.0);
+				//fclose(fpt);
+
 				Mem.chanB = chanB;
 				Mem.chanR = chanR;
 				Mem.chanG = chanG;
@@ -867,6 +981,10 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				Af2 = new thread(ThreadQuarter2, &Mem);
 				Af3 = new thread(ThreadQuarter3, &Mem);
 				Af4 = new thread(ThreadQuarter4, &Mem);
+				Af5 = new thread(ThreadQuarter5, &Mem);
+				Af6 = new thread(ThreadQuarter6, &Mem);
+				Af7 = new thread(ThreadQuarter7, &Mem);
+				Af8 = new thread(ThreadQuarter8, &Mem);
 
 				CurrentFrameNumber++;
 
@@ -875,12 +993,16 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 		} // end of while frames
 
 		// wait for the last frame rendering
-		if (Af1 && Af2 && Af3 && Af4)
+		if (Af1 && Af2 && Af3 && Af4 && Af5 && Af6 && Af7 && Af8)
 		{
 			Af1->join(); delete Af1; Af1 = NULL;
 			Af2->join(); delete Af2; Af2 = NULL;
 			Af3->join(); delete Af3; Af3 = NULL;
 			Af4->join(); delete Af4; Af4 = NULL;
+			Af5->join(); delete Af5; Af5 = NULL;
+			Af6->join(); delete Af6; Af6 = NULL;
+			Af7->join(); delete Af7; Af7 = NULL;
+			Af8->join(); delete Af8; Af8 = NULL;
 		}
 	
 		RenderImageWithSub(Renderer, Font, ref(MySubTitles), width, height, ref(IndiceSub), CurrentFrameNumber, ref(Mem));
@@ -1019,6 +1141,7 @@ void CPlayer::EndAndClear(bool LastTime)
 		if (mywin) SDL_DestroyWindow(mywin);
 		SDL_Quit();
 		if (Lut22 != NULL) free(Lut22);
+		if (Lut22_c != NULL) free(Lut22_c);
 		if (Lut26 != NULL) free(Lut26);
 		TTF_Quit();	
 		if (fp_log) fclose(fp_log);
@@ -1088,22 +1211,23 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 
 	if (&MySubTitles != NULL)
 		if (MySubTitles.size() > 0)
-			if (IndiceSub[i] != 0 && MySubTitles.size() > IndiceSub[i])
-			{
-				Uint32 nbligne = MySubTitles[IndiceSub[i]].Line.size();
-				for (ui32_t line = 0; line < nbligne; line++)
+			if (i< IndiceSub.size())
+				if (IndiceSub[i] != 0 && MySubTitles.size() > IndiceSub[i])
 				{
-					//cout << MySubTitles[IndiceSub[i]].Line[line].Text << "    ";
-  					bool bget=get_text_and_rect(Renderer, 0, 0, MySubTitles[IndiceSub[i]].Line[line].Text.c_str(), Font, &TextTexture, &MessageRect);
-					if (bget)
+					Uint32 nbligne = MySubTitles[IndiceSub[i]].Line.size();
+					for (ui32_t line = 0; line < nbligne; line++)
 					{
-						MessageRect.x = (width / 2) / Mem.Scalef - MessageRect.w / 2;
-						MessageRect.y = Mem.base - MessageRect.h - ((nbligne - line) * MessageRect.h * 1.5);// -MessageRect.h;
-						SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
-						SDL_DestroyTexture(TextTexture);
+						//cout << MySubTitles[IndiceSub[i]].Line[line].Text << "    ";
+  						bool bget=get_text_and_rect(Renderer, 0, 0, MySubTitles[IndiceSub[i]].Line[line].Text.c_str(), Font, &TextTexture, &MessageRect);
+						if (bget)
+						{
+							MessageRect.x = (width / 2) / Mem.Scalef - MessageRect.w / 2;
+							MessageRect.y = Mem.base - MessageRect.h - ((nbligne - line) * MessageRect.h * 1.5);// -MessageRect.h;
+							SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
+							SDL_DestroyTexture(TextTexture);
+						}
 					}
 				}
-			}
 
 	SDL_RenderPresent(Renderer);
 	//SDL_UpdateWindowSurface(Mem.mywin);
@@ -1116,8 +1240,8 @@ void CPlayer::StateMachine()
 	
 	SDL_Event event;
   	event.type = 0;
-	int Incrementation = max(frame_count / 20,2);
-	int PageIncrementation = max(frame_count / 10,2);
+	int Incrementation = max((int)(frame_count / 20),2);
+	int PageIncrementation = max((int)(frame_count / 10),2);
 //	SDL_FlushEvents(0, SDL_LASTEVENT);
 	SDL_PollEvent(&event);
 	bool loop = true;
@@ -1476,6 +1600,16 @@ bool CPlayer::SelectAudioDeviceInitAudio()
 	return true;
 }
 
+double Duration_t(std::chrono::time_point<std::chrono::system_clock> end, std::chrono::time_point<std::chrono::system_clock> start)
+{
+	std::chrono::duration<double> diff = end - start;
+	return diff.count();
+}
+std::chrono::time_point<std::chrono::system_clock> MyGetCurrentTime_t()
+{
+	return std::chrono::system_clock::now();
+}
+
 void CPlayer::ThreadQuarter1(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
@@ -1508,9 +1642,9 @@ void CPlayer::ThreadQuarter1(void* Param)
 	static unsigned short int maxs = 0XFFFF;
 
 	int h2 = height >> 1;
-	int w2 = width >> 1;
+	int w2 = width >> 2;//1
 	int linit = (scr->h >> 1) - h2;
-	int cinit = (scr->w >> 1) - w2;
+	int cinit = (scr->w >> 2) - w2;//1
 
 	for (int li = 0; li < h2; li++)
 	{
@@ -1523,18 +1657,18 @@ void CPlayer::ThreadQuarter1(void* Param)
 			red_co_gamma = Mem->pLut26[redbase << 4];
 			green_co_gamma = Mem->pLut26[greenbase << 4];
 			blue_co_gamma = Mem->pLut26[bluebase << 4];
-			red_cor_coul = int((float)red_co_gamma * MyCoefXYZ[0][0] + (float)green_co_gamma * MyCoefXYZ[0][1] + (float)blue_co_gamma * MyCoefXYZ[0][2]);
-			green_cor_coul = int((float)red_co_gamma * MyCoefXYZ[1][0] + (float)green_co_gamma * MyCoefXYZ[1][1] + (float)blue_co_gamma * MyCoefXYZ[1][2]);
-			blue_cor_coul = int((float)red_co_gamma * MyCoefXYZ[2][0] + (float)green_co_gamma * MyCoefXYZ[2][1] + (float)blue_co_gamma * MyCoefXYZ[2][2]);
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
 			if (red_cor_coul < 0) red_cor_coul = 0;
 			if (green_cor_coul < 0) green_cor_coul = 0;
 			if (blue_cor_coul < 0) blue_cor_coul = 0;
 			if (red_cor_coul > maxs) red_cor_coul = maxs;
 			if (green_cor_coul > maxs) green_cor_coul = maxs;
 			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
-			red_f = (unsigned char)(Mem->pLut22[red_cor_coul] >> 8);
-			green_f = (unsigned char)(Mem->pLut22[green_cor_coul] >> 8);
-			blue_f = (unsigned char)(Mem->pLut22[blue_cor_coul] >> 8);
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
 			const int idx = ((li + linit) * scr->w + (col + cinit)) * bpp;
 			Uint8* px = (Uint8*)scr->pixels + idx;
 			*(px + rs) = (unsigned char)red_f;
@@ -1571,9 +1705,9 @@ void CPlayer::ThreadQuarter2(void* Param)
 	unsigned char red_f, green_f, blue_f;
 	static unsigned short int maxs = 0XFFFF;
 	int h2 = height >> 1;
-	int w2 = width >> 1;
+	int w2 = width >> 2;//1
 	int linit = (scr->h >> 1);
-	int cinit = (scr->w >> 1) - w2;
+	int cinit = (scr->w >> 2) - w2;//1
 
 	for (int li = h2; li < height; li++)
 	{
@@ -1586,18 +1720,18 @@ void CPlayer::ThreadQuarter2(void* Param)
 			red_co_gamma = Mem->pLut26[redbase << 4];
 			green_co_gamma = Mem->pLut26[greenbase << 4];
 			blue_co_gamma = Mem->pLut26[bluebase << 4];
-			red_cor_coul = int((float)red_co_gamma * MyCoefXYZ[0][0] + (float)green_co_gamma * MyCoefXYZ[0][1] + (float)blue_co_gamma * MyCoefXYZ[0][2]);
-			green_cor_coul = int((float)red_co_gamma * MyCoefXYZ[1][0] + (float)green_co_gamma * MyCoefXYZ[1][1] + (float)blue_co_gamma * MyCoefXYZ[1][2]);
-			blue_cor_coul = int((float)red_co_gamma * MyCoefXYZ[2][0] + (float)green_co_gamma * MyCoefXYZ[2][1] + (float)blue_co_gamma * MyCoefXYZ[2][2]);
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
 			if (red_cor_coul < 0) red_cor_coul = 0;
 			if (green_cor_coul < 0) green_cor_coul = 0;
 			if (blue_cor_coul < 0) blue_cor_coul = 0;
 			if (red_cor_coul > maxs) red_cor_coul = maxs;
 			if (green_cor_coul > maxs) green_cor_coul = maxs;
 			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
-			red_f = (unsigned char)(Mem->pLut22[red_cor_coul] >> 8);
-			green_f = (unsigned char)(Mem->pLut22[green_cor_coul] >> 8);
-			blue_f = (unsigned char)(Mem->pLut22[blue_cor_coul] >> 8);
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
 			const int idx = ((li + linit - h2) * scr->w + (col + cinit)) * bpp;
 			Uint8* px = (Uint8*)scr->pixels + idx;
 			*(px + rs) = (unsigned char)red_f;
@@ -1607,12 +1741,11 @@ void CPlayer::ThreadQuarter2(void* Param)
 	}
 	return;
 }
-
 void CPlayer::ThreadQuarter3(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
-	if (Mem->mywin == NULL || scr==NULL)
+	if (Mem->mywin == NULL || scr == NULL)
 	{
 		return;
 	}
@@ -1634,9 +1767,11 @@ void CPlayer::ThreadQuarter3(void* Param)
 	unsigned char red_f, green_f, blue_f;
 	static unsigned short int maxs = 0XFFFF;
 	int h2 = height >> 1;
-	int w2 = width >> 1;
+	int w2;
+ 	if (width % 4 == 0) w2 = width >> 2;
+	else w2 = (width >> 2) + 1;
 	int linit = (scr->h >> 1) - h2;
-	int cinit = (scr->w >> 1);
+	int cinit = (scr->w >> 2);//1
 
 	for (int li = 0; li < h2; li++)
 	{
@@ -1649,18 +1784,18 @@ void CPlayer::ThreadQuarter3(void* Param)
 			red_co_gamma = Mem->pLut26[redbase << 4];
 			green_co_gamma = Mem->pLut26[greenbase << 4];
 			blue_co_gamma = Mem->pLut26[bluebase << 4];
-			red_cor_coul = int((float)red_co_gamma * MyCoefXYZ[0][0] + (float)green_co_gamma * MyCoefXYZ[0][1] + (float)blue_co_gamma * MyCoefXYZ[0][2]);
-			green_cor_coul = int((float)red_co_gamma * MyCoefXYZ[1][0] + (float)green_co_gamma * MyCoefXYZ[1][1] + (float)blue_co_gamma * MyCoefXYZ[1][2]);
-			blue_cor_coul = int((float)red_co_gamma * MyCoefXYZ[2][0] + (float)green_co_gamma * MyCoefXYZ[2][1] + (float)blue_co_gamma * MyCoefXYZ[2][2]);
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
 			if (red_cor_coul < 0) red_cor_coul = 0;
 			if (green_cor_coul < 0) green_cor_coul = 0;
 			if (blue_cor_coul < 0) blue_cor_coul = 0;
 			if (red_cor_coul > maxs) red_cor_coul = maxs;
 			if (green_cor_coul > maxs) green_cor_coul = maxs;
 			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
-			red_f = (unsigned char)(Mem->pLut22[red_cor_coul] >> 8);
-			green_f = (unsigned char)(Mem->pLut22[green_cor_coul] >> 8);
-			blue_f = (unsigned char)(Mem->pLut22[blue_cor_coul] >> 8);
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
 			const int idx = ((li + linit) * scr->w + (col + cinit)) * bpp;
 			Uint8* px = (Uint8*)scr->pixels + idx;
 			*(px + rs) = (unsigned char)red_f;
@@ -1671,7 +1806,10 @@ void CPlayer::ThreadQuarter3(void* Param)
 	return;
 }
 
-void CPlayer::ThreadQuarter4(void* Param)
+
+
+
+void CPlayer::ThreadQuarter5(void* Param)
 {
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
@@ -1698,32 +1836,33 @@ void CPlayer::ThreadQuarter4(void* Param)
 	static unsigned short int maxs = 0XFFFF;
 	int h2 = height >> 1;
 	int w2 = width >> 1;
-	int linit = (scr->h >> 1);
+	int wf = width >> 2;
+	int linit = (scr->h >> 1) - h2;
 	int cinit = (scr->w >> 1);
 
 	for (int li = 0; li < h2; li++)
 	{
-		for (int col = 0; col < w2; col++)
+		for (int col = 0; col < wf; col++)
 		{
-			int p = width * (li + h2) + (col + w2);
+			int p = width * li + (col + w2);
 			redbase = Mem->chanR[p];
 			greenbase = Mem->chanG[p];
 			bluebase = Mem->chanB[p];
 			red_co_gamma = Mem->pLut26[redbase << 4];
 			green_co_gamma = Mem->pLut26[greenbase << 4];
 			blue_co_gamma = Mem->pLut26[bluebase << 4];
-			red_cor_coul = int((float)red_co_gamma * MyCoefXYZ[0][0] + (float)green_co_gamma * MyCoefXYZ[0][1] + (float)blue_co_gamma * MyCoefXYZ[0][2]);
-			green_cor_coul = int((float)red_co_gamma * MyCoefXYZ[1][0] + (float)green_co_gamma * MyCoefXYZ[1][1] + (float)blue_co_gamma * MyCoefXYZ[1][2]);
-			blue_cor_coul = int((float)red_co_gamma * MyCoefXYZ[2][0] + (float)green_co_gamma * MyCoefXYZ[2][1] + (float)blue_co_gamma * MyCoefXYZ[2][2]);
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
 			if (red_cor_coul < 0) red_cor_coul = 0;
 			if (green_cor_coul < 0) green_cor_coul = 0;
 			if (blue_cor_coul < 0) blue_cor_coul = 0;
 			if (red_cor_coul > maxs) red_cor_coul = maxs;
 			if (green_cor_coul > maxs) green_cor_coul = maxs;
 			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
-			red_f = (unsigned char)(Mem->pLut22[red_cor_coul] >> 8);
-			green_f = (unsigned char)(Mem->pLut22[green_cor_coul] >> 8);
-			blue_f = (unsigned char)(Mem->pLut22[blue_cor_coul] >> 8);
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
 			const int idx = ((li + linit) * scr->w + (col + cinit)) * bpp;
 			Uint8* px = (Uint8*)scr->pixels + idx;
 			*(px + rs) = (unsigned char)red_f;
@@ -1733,6 +1872,286 @@ void CPlayer::ThreadQuarter4(void* Param)
 	}
 	return;
 }
+
+void CPlayer::ThreadQuarter6(void* Param)
+{
+	SMemoire* Mem = (SMemoire*)Param;
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr==NULL)
+	{
+		return;
+	}
+	int height = Mem->height;
+	int width = Mem->width;
+	Uint8 bpp = scr->format->BytesPerPixel;
+	Uint8 rs = scr->format->Rshift / 8;
+	Uint8 rg = scr->format->Gshift / 8;
+	Uint8 rb = scr->format->Bshift / 8;
+	unsigned short int redbase = 3500;
+	unsigned short int greenbase = 4000;
+	unsigned short int bluebase = 4000;
+	unsigned short int red_co_gamma;
+	unsigned short int blue_co_gamma;
+	unsigned short int green_co_gamma;
+	int red_cor_coul;
+	int green_cor_coul;
+	int blue_cor_coul;
+	unsigned char red_f, green_f, blue_f;
+	static unsigned short int maxs = 0XFFFF;
+	int h2 = height >> 1;
+	int w2 = width >> 1;//1
+	int wf = width >> 2;
+	int linit = (scr->h >> 1);
+	int cinit = (scr->w >> 1);//1
+
+	for (int li = 0; li < h2; li++)
+	{
+		for (int col = 0; col < wf; col++)
+		{
+			int p = width * (li + h2) + (col + w2);
+			redbase = Mem->chanR[p];
+			greenbase = Mem->chanG[p];
+			bluebase = Mem->chanB[p];
+			red_co_gamma = Mem->pLut26[redbase << 4];
+			green_co_gamma = Mem->pLut26[greenbase << 4];
+			blue_co_gamma = Mem->pLut26[bluebase << 4];
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
+			if (red_cor_coul < 0) red_cor_coul = 0;
+			if (green_cor_coul < 0) green_cor_coul = 0;
+			if (blue_cor_coul < 0) blue_cor_coul = 0;
+			if (red_cor_coul > maxs) red_cor_coul = maxs;
+			if (green_cor_coul > maxs) green_cor_coul = maxs;
+			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
+			const int idx = ((li + linit) * scr->w + (col + cinit)) * bpp;
+			Uint8* px = (Uint8*)scr->pixels + idx;
+			*(px + rs) = (unsigned char)red_f;
+			*(px + rg) = (unsigned char)green_f;
+			*(px + rb) = (unsigned char)blue_f;
+		}
+	}
+	return;
+}
+
+
+void CPlayer::ThreadQuarter7(void* Param)
+{
+	SMemoire* Mem = (SMemoire*)Param;
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr == NULL)
+	{
+		return;
+	}
+	int height = Mem->height;
+	int width = Mem->width;
+	Uint8 bpp = scr->format->BytesPerPixel;
+	Uint8 rs = scr->format->Rshift / 8;
+	Uint8 rg = scr->format->Gshift / 8;
+	Uint8 rb = scr->format->Bshift / 8;
+	unsigned short int redbase = 3500;
+	unsigned short int greenbase = 4000;
+	unsigned short int bluebase = 4000;
+	unsigned short int red_co_gamma;
+	unsigned short int blue_co_gamma;
+	unsigned short int green_co_gamma;
+	int red_cor_coul;
+	int green_cor_coul;
+	int blue_cor_coul;
+	unsigned char red_f, green_f, blue_f;
+	static unsigned short int maxs = 0XFFFF;
+	int h2 = height >> 1;
+	int w4 = width >> 2;
+	int w34 =w4+ (width>>1);
+	int linit = (scr->h >> 1) - h2;
+	int cinit = 3*(scr->w >> 2);
+
+	for (int li = 0; li < h2; li++)
+	{
+		for (int col = 0; col < w4; col++)
+		{
+			int p = width * li + (col + w34);
+			redbase = Mem->chanR[p];
+			greenbase = Mem->chanG[p];
+			bluebase = Mem->chanB[p];
+			red_co_gamma = Mem->pLut26[redbase << 4];
+			green_co_gamma = Mem->pLut26[greenbase << 4];
+			blue_co_gamma = Mem->pLut26[bluebase << 4];
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
+			if (red_cor_coul < 0) red_cor_coul = 0;
+			if (green_cor_coul < 0) green_cor_coul = 0;
+			if (blue_cor_coul < 0) blue_cor_coul = 0;
+			if (red_cor_coul > maxs) red_cor_coul = maxs;
+			if (green_cor_coul > maxs) green_cor_coul = maxs;
+			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
+			const int idx = ((li + linit) * scr->w + (col + cinit)) * bpp;
+			Uint8* px = (Uint8*)scr->pixels + idx;
+			*(px + rs) = (unsigned char)red_f;
+			*(px + rg) = (unsigned char)green_f;
+			*(px + rb) = (unsigned char)blue_f;
+		}
+	}
+	return;
+}
+
+
+void CPlayer::ThreadQuarter4(void* Param)
+{
+	SMemoire* Mem = (SMemoire*)Param;
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr == NULL)
+	{
+		return;
+	}
+	int height = Mem->height;
+	int width = Mem->width;
+	Uint8 bpp = scr->format->BytesPerPixel;
+	Uint8 rs = scr->format->Rshift / 8;
+	Uint8 rg = scr->format->Gshift / 8;
+	Uint8 rb = scr->format->Bshift / 8;
+	unsigned short int redbase = 3500;
+	unsigned short int greenbase = 4000;
+	unsigned short int bluebase = 4000;
+	unsigned short int red_co_gamma;
+	unsigned short int blue_co_gamma;
+	unsigned short int green_co_gamma;
+	int red_cor_coul;
+	int green_cor_coul;
+	int blue_cor_coul;
+	unsigned char red_f, green_f, blue_f;
+	static unsigned short int maxs = 0XFFFF;
+	int h2 = height >> 1;
+	int w2;
+	if (width % 4 == 0) w2 = width >> 2;
+	else w2 = (width >> 2) + 1;
+	int linit = (scr->h >> 1);
+	int cinit = (scr->w >> 2);//1
+
+	//FILE* fpt = fopen("temps_t_4.txt", "a+");
+	//auto temps1 = MyGetCurrentTime_t();
+
+	for (int li = h2; li < height; li++)
+	{
+		for (int col = 0; col < w2; col++)
+		{
+			int p = width * li + (col + w2);
+			redbase = Mem->chanR[p];
+			greenbase = Mem->chanG[p];
+			bluebase = Mem->chanB[p];
+			red_co_gamma = Mem->pLut26[redbase << 4];
+			green_co_gamma = Mem->pLut26[greenbase << 4];
+			blue_co_gamma = Mem->pLut26[bluebase << 4];
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >> 14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
+			if (red_cor_coul < 0) red_cor_coul = 0;
+			if (green_cor_coul < 0) green_cor_coul = 0;
+			if (blue_cor_coul < 0) blue_cor_coul = 0;
+			if (red_cor_coul > maxs) red_cor_coul = maxs;
+			if (green_cor_coul > maxs) green_cor_coul = maxs;
+			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
+			const int idx = ((li + linit-h2) * scr->w + (col + cinit)) * bpp;
+			Uint8* px = (Uint8*)scr->pixels + idx;
+			*(px + rs) = (unsigned char)red_f;
+			*(px + rg) = (unsigned char)green_f;
+			*(px + rb) = (unsigned char)blue_f;
+		}
+	}
+
+	//auto temps2 = MyGetCurrentTime_t();
+	//double tempsdecode = Duration_t(temps2, temps1);
+	//fprintf(fpt, "%lf\n", tempsdecode * 1000.0);
+	//fclose(fpt);
+	return;
+}
+
+void CPlayer::ThreadQuarter8(void* Param)
+{
+	SMemoire* Mem = (SMemoire*)Param;
+	SDL_Surface* scr = Mem->scr;
+	if (Mem->mywin == NULL || scr == NULL)
+	{
+		return;
+	}
+	int height = Mem->height;
+	int width = Mem->width;
+	Uint8 bpp = scr->format->BytesPerPixel;
+	Uint8 rs = scr->format->Rshift / 8;
+	Uint8 rg = scr->format->Gshift / 8;
+	Uint8 rb = scr->format->Bshift / 8;
+	unsigned short int redbase = 3500;
+	unsigned short int greenbase = 4000;
+	unsigned short int bluebase = 4000;
+	unsigned short int red_co_gamma;
+	unsigned short int blue_co_gamma;
+	unsigned short int green_co_gamma;
+	int red_cor_coul;
+	int green_cor_coul;
+	int blue_cor_coul;
+	unsigned char red_f, green_f, blue_f;
+	static unsigned short int maxs = 0XFFFF;
+	int h2 = height >> 1;
+	int w4 = width >> 2;
+	int w34 = w4 + (width >> 1);
+	int linit = (scr->h >> 1);
+	int cinit = 3 * (scr->w >> 2);
+
+
+	/*FILE* fpt = fopen("temps_t_8.txt", "a+");
+	auto temps1 = MyGetCurrentTime_t();*/
+
+
+	for (int li = h2; li < height; li++)
+	{
+		for (int col = 0; col < w4; col++)
+		{
+			int p = width * li + (col + w34);
+
+			redbase = Mem->chanR[p];
+			greenbase = Mem->chanG[p];
+			bluebase = Mem->chanB[p];
+			red_co_gamma = Mem->pLut26[redbase << 4];
+			green_co_gamma = Mem->pLut26[greenbase << 4];
+			blue_co_gamma = Mem->pLut26[bluebase << 4];
+			red_cor_coul = (red_co_gamma * MyCoefXYZ_i[0][0] + green_co_gamma * MyCoefXYZ_i[0][1] + blue_co_gamma * MyCoefXYZ_i[0][2]) >>14;
+			green_cor_coul = (red_co_gamma * MyCoefXYZ_i[1][0] + green_co_gamma * MyCoefXYZ_i[1][1] + blue_co_gamma * MyCoefXYZ_i[1][2]) >> 14;
+			blue_cor_coul = (red_co_gamma * MyCoefXYZ_i[2][0] + green_co_gamma * MyCoefXYZ_i[2][1] + blue_co_gamma * MyCoefXYZ_i[2][2]) >> 14;
+			if (red_cor_coul < 0) red_cor_coul = 0;
+			if (green_cor_coul < 0) green_cor_coul = 0;
+			if (blue_cor_coul < 0) blue_cor_coul = 0;
+			if (red_cor_coul > maxs) red_cor_coul = maxs;
+			if (green_cor_coul > maxs) green_cor_coul = maxs;
+			if (blue_cor_coul > maxs) blue_cor_coul = maxs;
+			red_f = Mem->pLut22_c[red_cor_coul];
+			green_f = Mem->pLut22_c[green_cor_coul];
+			blue_f = Mem->pLut22_c[blue_cor_coul];
+
+			const int idx = ((li + linit - h2) * scr->w + (col + cinit)) * bpp;
+			Uint8* px = (Uint8*)scr->pixels + idx;
+			*(px + rs) = (unsigned char)red_f;
+			*(px + rg) = (unsigned char)green_f;
+			*(px + rb) = (unsigned char)blue_f;
+		}
+	}
+	//auto temps2 = MyGetCurrentTime_t();
+	//double tempsdecode = Duration_t(temps2, temps1);
+	//fprintf(fpt, "%lf\n", tempsdecode * 1000.0);
+	//fclose(fpt);
+	return;
+}
+
+
 
 
 bool CPlayer::get_text_and_rect(SDL_Renderer* renderer, int x, int y, const char* text, TTF_Font* font, SDL_Texture** texture, SDL_Rect* rect)

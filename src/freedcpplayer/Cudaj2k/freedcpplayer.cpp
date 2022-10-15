@@ -28,6 +28,11 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	\version $Id$
 
 */
+//version 0.6.0
+//change
+// use version 0.6.0 of nvjpeg2k_dll, allowing 4K cine decoding
+
+
 
 // version 0.3.2
 // change
@@ -159,7 +164,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.4.3\n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.0\n");
 
 	if (Options.error_flag)
 	{
@@ -193,10 +198,22 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	VectVideoReader.resize(Totalduration);
 	CPlayer* pPlayer=NULL;
 	bool AudioSelectedOk=false;
-	bool WaitAfterFirstFrame=true;
+	bool WaitAfterFirstFrame;
+
+
 
 
 	pPlayer = new CPlayer(Options, defaultFactory, full_path);
+	if (Options.PlayDirect)
+	{
+		WaitAfterFirstFrame = false;
+		pPlayer->RestartLoop = true;
+	}
+	else
+	{
+		WaitAfterFirstFrame = true;
+		pPlayer->RestartLoop = false;
+	}
 	AudioSelectedOk = pPlayer->SelectAudioDeviceInitAudio();
 
 	if (AudioSelectedOk && DcpParse.VideoOk && DcpParse.SoundOk)

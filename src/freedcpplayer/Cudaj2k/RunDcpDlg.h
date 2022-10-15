@@ -61,6 +61,8 @@ class RunDlg : public wxDialog
 		wxCheckBox* m_checkBox_Progress;
 		wxCheckBox* m_checkBox_log;
 		wxCheckBox* m_checkBox_51;
+		wxCheckBox* m_checkBox_half;
+		wxCheckBox* m_checkBox_play;
 		wxButton* m_button_run;
 		wxButton* m_button_help;
 		wxButton* m_button_quit;
@@ -82,6 +84,8 @@ class RunDlg : public wxDialog
 		virtual void m_checkBox_ProgressOnCheckBox( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_checkBox_logOnCheckBox( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_checkBox_51OnCheckBox( wxCommandEvent& event ) { event.Skip(); }
+		virtual void m_checkBox_halfOnCheckBox(wxCommandEvent& event) { event.Skip(); }
+		virtual void m_checkBox_playOnCheckBox(wxCommandEvent& event) { event.Skip(); }
 		
 		virtual void m_button_runOnButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_button_helpOnButtonClick(wxCommandEvent& event) { event.Skip(); }

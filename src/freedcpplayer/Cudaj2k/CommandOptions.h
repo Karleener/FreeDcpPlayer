@@ -89,6 +89,8 @@ public:
 	int NumCpl;
 	bool Output51;
 	bool IncrustFps;
+	bool HalfResolution;
+	bool PlayDirect;
 
 	//
 	Rational PictureRate()
@@ -120,7 +122,7 @@ public:
 		version_flag(false), help_flag(false), stereo_image_flag(false), number_width(6),
 		start_frame(0), duration(0xffffffff), duration_flag(false), j2c_pedantic(true),
 		picture_rate(24), fb_size(FRAME_BUFFER_SIZE), file_prefix(0),
-		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false)
+		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false),HalfResolution(false), PlayDirect(false)
 	{
 		memset(key_value, 0, KeyLen);
 		memset(key_id_value, 0, UUIDlen);
@@ -194,15 +196,9 @@ public:
 				case 'm': read_hmac = true; break;
 				case 'o': Output51 = true; break; // activate 5.1 output
 
-				case 'p':
-					TEST_EXTRA_ARG(i, 'p');
-					picture_rate = Kumu::xabs(strtol(argv[i], 0, 10));
-					break;
+				case 'p': PlayDirect = true; break; // activate play direct without first pause
 
-				case 's':
-					TEST_EXTRA_ARG(i, 's');
-					fb_dump_size = Kumu::xabs(strtol(argv[i], 0, 10));
-					break;
+				case 's': HalfResolution = true; break; // activate half resolution decoding
 
 				case 'V': version_flag = true; break;
 				case 'v': verbose_flag = true; break;

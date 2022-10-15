@@ -43,6 +43,8 @@ Run::Run(wxWindow* parent)
 	, m_Log(true)
 	, m_ProgressBar(true)
 	, m_Output51(false)
+	, m_HalfResolution(false)
+	, m_Play(false)
 	, m_IsPlaying(false)
 {
 
@@ -112,6 +114,10 @@ void Run::RunDcpPlayerDlgOnInitDialog( wxInitDialogEvent& event )
 		if (line == "0") m_ProgressBar = false; else m_ProgressBar = true;
 		getline(read, line);
 		if (line == "0") m_Output51 = false; else m_Output51 = true;
+		getline(read, line);
+		if (line == "0") m_HalfResolution= false; else m_HalfResolution = true;
+		getline(read, line);
+		if (line == "0") m_Play = false; else m_Play = true;
 		//_chdir(ChoosenDir.c_str());
 	}
 
@@ -216,6 +222,16 @@ void Run::m_checkBox_51OnCheckBox( wxCommandEvent& event )
 	UpdateCommand();
 }
 
+void Run::m_checkBox_HalfOnCheckBox(wxCommandEvent& event)
+{
+	UpdateCommand();
+}
+
+void Run::m_checkBox_playOnCheckBox(wxCommandEvent& event)
+{
+	UpdateCommand();
+}
+
 void Run::m_button_runOnButtonClick( wxCommandEvent& event )
 {
 	if (!m_IsPlaying)
@@ -230,9 +246,11 @@ void Run::m_button_runOnButtonClick( wxCommandEvent& event )
 		if (m_Log) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
 		if (m_ProgressBar) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
 		if (m_Output51) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
+		if (m_HalfResolution) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
+		if (m_Play) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
 		fclose(fp);
 
-		m_Com = "Player is running";
+		m_Com = "Player is running - Press esc to stop before any change";
 		m_staticText_Command->SetLabelText(m_Com);
 
 		m_IsPlaying = true;
@@ -272,7 +290,8 @@ void Run::m_button_helpOnButtonClick(wxCommandEvent& event)
 		"o Use double mouse left click in the picture as an horizontal slider to move forward or backward\n"
 		"o Press  ESC key to end the program\n"
 		"o Press i for progess bar activation\n"
-		"o This version is restricted to Uncrypted 5.1  or Stereo and 2K DCP\n"
+		"o Press j for fps information\n"
+		"o This version is restricted to Uncrypted 5.1  or Stereo \n"
 		"o A Cuda based NVIDIA GPU with at least 6GB is required\n\n"
 		"Portions of this software are copyright(c) <2006 - 2021> The FreeType\n"
 		"Project(www.freetype.org).All rights reserved.\n"
@@ -319,6 +338,8 @@ void Run::UpdateCommand()
 	if (!m_Back) arguments.push_back("-g");
 	if (m_ProgressBar) arguments.push_back("-i");
 	if (m_Output51) arguments.push_back("-o");
+	if (m_HalfResolution) arguments.push_back("-s");
+	if (m_Play) arguments.push_back("-p");
 	if (m_Log)
 	{
 		arguments.push_back("-v");
@@ -347,6 +368,8 @@ bool Run::TransferDataToWindow()
 	m_checkBox_Progress->SetValue(m_ProgressBar);
 	m_checkBox_log->SetValue(m_Log);
 	m_checkBox_51->SetValue(m_Output51);
+	m_checkBox_half->SetValue(m_HalfResolution);
+	m_checkBox_play->SetValue(m_Play);
 	m_staticText_Command->SetLabelText(m_Com);
 	return true;
 
@@ -358,6 +381,8 @@ bool Run::TransferDataFromWindow()
 	m_ProgressBar=m_checkBox_Progress->GetValue();
 	m_Log=m_checkBox_log->GetValue();
 	m_Output51=m_checkBox_51->GetValue();
+	m_Play=m_checkBox_play->GetValue();
+	m_HalfResolution = m_checkBox_half->GetValue();
 
 	return true;
 

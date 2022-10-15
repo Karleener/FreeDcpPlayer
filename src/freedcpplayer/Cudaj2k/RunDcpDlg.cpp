@@ -81,6 +81,15 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_checkBox_51 = new wxCheckBox( this, wxID_ANY, wxT("Enable 5.1 output"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer1->Add( m_checkBox_51, 0, wxALL, 5 );
 
+	m_checkBox_half = new wxCheckBox(this, wxID_ANY, wxT("Enable half resolution decoding"), wxDefaultPosition, wxDefaultSize, 0);
+	fgSizer1->Add(m_checkBox_half, 0, wxALL, 5);
+
+	m_checkBox_play= new wxCheckBox(this, wxID_ANY, wxT("Play without initial pause"), wxDefaultPosition, wxDefaultSize, 0);
+	fgSizer1->Add(m_checkBox_play, 0, wxALL, 5);
+	//wxSize MySize = wxDefaultSize;
+	//MySize.SetHeight(MySize.GetHeight() * 2);
+	//MySize.SetWidth(MySize.GetWidth() * 2);
+
 	m_button_run = new wxButton( this, wxID_ANY, wxT("Run FreeDcpPlayer"), wxPoint( -1,-1 ), wxDefaultSize, 0 );
 
 	//m_button_run->SetDefault();
@@ -99,7 +108,7 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_staticText_Command->Wrap(-1);
 	fgSizer1->Add(m_staticText_Command, 0, wxALL, 5);
 
-	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.4.3"), wxDefaultPosition, wxDefaultSize, 0);
+	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.6.0"), wxDefaultPosition, wxDefaultSize, 0);
 	m_About1->Wrap(-1);
 	fgSizer1->Add(m_About1, 0, wxALL, 5);
 
@@ -123,6 +132,9 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_checkBox_Progress->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_ProgressOnCheckBox ), NULL, this );
 	m_checkBox_log->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_logOnCheckBox ), NULL, this );
 	m_checkBox_51->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_51OnCheckBox ), NULL, this );
+	m_checkBox_half->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_halfOnCheckBox), NULL, this);
+	m_checkBox_play->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_playOnCheckBox), NULL, this);
+
 	m_button_run->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_runOnButtonClick ), NULL, this );
 	m_button_help->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(RunDlg::m_button_helpOnButtonClick), NULL, this);
 	m_button_quit->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_quitOnButtonClick ), NULL, this );
@@ -142,7 +154,9 @@ RunDlg::~RunDlg()
 	m_checkBox_Progress->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_ProgressOnCheckBox ), NULL, this );
 	m_checkBox_log->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_logOnCheckBox ), NULL, this );
 	m_checkBox_51->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_51OnCheckBox ), NULL, this );
-	
+	m_checkBox_half->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_halfOnCheckBox), NULL, this);
+	m_checkBox_play->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_playOnCheckBox), NULL, this);
+
 	m_button_run->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_runOnButtonClick ), NULL, this );
 	m_button_help->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(RunDlg::m_button_helpOnButtonClick), NULL, this);
 	m_button_quit->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_quitOnButtonClick ), NULL, this );

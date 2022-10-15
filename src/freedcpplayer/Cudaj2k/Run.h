@@ -53,6 +53,8 @@ class Run : public RunDlg
 		void m_checkBox_ProgressOnCheckBox( wxCommandEvent& event );
 		void m_checkBox_logOnCheckBox( wxCommandEvent& event );
 		void m_checkBox_51OnCheckBox( wxCommandEvent& event );
+		void m_checkBox_HalfOnCheckBox(wxCommandEvent& event);
+		void m_checkBox_playOnCheckBox(wxCommandEvent& event);
 		
 		void m_button_runOnButtonClick( wxCommandEvent& event );
 		void m_button_helpOnButtonClick(wxCommandEvent& event);
@@ -77,6 +79,8 @@ class Run : public RunDlg
 		bool m_Log;
 		bool m_ProgressBar;
 		bool m_Output51;
+		bool m_HalfResolution;
+		bool m_Play;
 
 		bool m_IsPlaying;
 

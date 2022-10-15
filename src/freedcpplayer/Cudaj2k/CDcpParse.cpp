@@ -119,12 +119,9 @@ void CDcpParse::ParseDCP(vector<string>& MxfFiles, string MyPath)
 
 	if (res)
 	{
-		//cout << "XML [" << source << "] parsed without errors, attr value: [" << doc.child("AssetMap").child("AssetList").child("Asset").child("ChunkList").child("Chunk").child("Path").first_child().value() << "]\n\n";
-
 		pugi::xml_node assets = doc.child("AssetMap").child("AssetList");
 		for (pugi::xml_node asset = assets.first_child(); asset; asset = asset.next_sibling())
 		{
-			//std::cout << "asset:";
 			CAsset* OneAsset = new CAsset();
 			for (pugi::xml_node attr = asset.first_child(); attr; attr = attr.next_sibling())
 			{
@@ -159,7 +156,6 @@ void CDcpParse::ParseDCP(vector<string>& MxfFiles, string MyPath)
 				}
 			}
 			AssetVector.push_back(OneAsset);
-			//std::cout << std::endl;
 		}
 	}
 	else { AssetMapOk = false; return; }
@@ -231,9 +227,7 @@ void CDcpParse::ParseCPL(CAsset* OneAsset,  string MyPath)
 	for (pugi::xml_node reel = nodereel.first_child(); reel; reel = reel.next_sibling())
 	{
 		CReel* OneReel = new CReel();
-
 		//MainPicture
-
 		pugi::xml_node MainPicture = reel.child("AssetList").child("MainPicture");
 		if (MainPicture)
 		{
@@ -357,7 +351,6 @@ void CDcpParse::ParsePKL(CAsset* OneAsset, string MyPath)
 	// for all assets
 	for (pugi::xml_node Asset = nodeAsset.first_child(); Asset; Asset = Asset.next_sibling())
 	{
-
 		if (Asset)
 		{
 			string mpid = Asset.child("Id").first_child().value();

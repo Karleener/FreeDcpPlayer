@@ -49,6 +49,39 @@ enum STATE
 	PLAY
 };
 
+struct partial_decode_info
+{
+	unsigned int win_tilex0;
+	unsigned int win_tilex1;
+	unsigned int win_tiley0;
+	unsigned int win_tiley1;
+	unsigned int tile_id;
+};
+
+struct decode_params_t
+{
+	std::string input_dir;
+	int batch_size;
+	int total_images;
+	int dev;
+	int warmup;
+
+	nvjpeg2kDecodeState_t nvjpeg2k_decode_states[1];
+	nvjpeg2kHandle_t nvjpeg2k_handle;
+	cudaStream_t stream[1];
+	std::vector<nvjpeg2kStream_t> jpeg2k_streams;
+	bool verbose;
+	bool write_decoded;
+	std::string output_dir;
+
+	unsigned int win_x0;
+	unsigned int win_x1;
+	unsigned int win_y0;
+	unsigned int win_y1;
+	bool partial_decode;
+};
+
+
 
 class CPlayer
 {
@@ -82,6 +115,10 @@ public :
 	thread* Af2 ;
 	thread* Af3 ;
 	thread* Af4 ;
+	thread* Af5;
+	thread* Af6;
+	thread* Af7;
+	thread* Af8;
 	thread* AfSub ;
 	bool BlackBackground = Options.BlackBackground;
 
@@ -160,6 +197,7 @@ public :
 	Uint32 TimeCodeRate;
 	Uint32 TheoreticalFrame;
 	int FontSize;
+	int DecodeLevel;
 
 	std::vector<unsigned short> vchanR;
 	std::vector<unsigned short> vchanG;
@@ -167,6 +205,7 @@ public :
 
 	unsigned short int* Lut26;
 	unsigned short int* Lut22;
+	unsigned char* Lut22_c;
 
 	unsigned char * GlobalBufferOneFrame;
 	unsigned char* AudioForDevice;
@@ -193,8 +232,16 @@ public :
 	static void ThreadQuarter2(void* Param);
 	static void ThreadQuarter3(void* Param);
 	static void ThreadQuarter4(void* Param);
+
+	static void ThreadQuarter5(void* Param);
+	static void ThreadQuarter6(void* Param);
+	static void ThreadQuarter7(void* Param);
+	static void ThreadQuarter8(void* Param);
+
 	static void RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<SubTitle>& MySubTitles, int width, int height, vector<int>& IndiceSub, Uint32 i, SMemoire& Mem);
 	static bool get_text_and_rect(SDL_Renderer* renderer, int x, int y, const char* text, TTF_Font* font, SDL_Texture** texture, SDL_Rect* rect);
+
+	//void determine_tiles_to_decode(const nvjpeg2kImageInfo_t& image_info, decode_params_t& params, vector<partial_decode_info>& tile_window_data);
 
 	int From51toStereo(const SFiveDotOne* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
 	int FromStereotoStereo(const SStereo24b* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
