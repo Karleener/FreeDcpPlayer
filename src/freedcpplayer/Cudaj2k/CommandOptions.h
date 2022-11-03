@@ -239,7 +239,9 @@ public:
 		}
 
 		if (help_flag || version_flag)
+		{
 			return;
+		}
 
 		if ((mode == MMT_EXTRACT || mode == MMT_GOP_START) && input_filename == 0)
 		{

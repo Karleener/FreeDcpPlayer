@@ -19,7 +19,7 @@
  *****************************************************************************/
 
  /**
-  * @file CPlayer.cpp
+  * @file CPlayer.cpp 0.6.1
   * @screen reels using Nvidia nvjp2k library 
   */
 
@@ -34,36 +34,6 @@ float MyCoefXYZ[3][3] = { {3.2404542, -1.5371385, -0.4985314},
 int MyCoefXYZ_i[3][3] = { {53092, -25184, -8168},
 			{-15880, 30737, 681},
 			{912, -3343,  17322 } };
-
-//void CPlayer::determine_tiles_to_decode(const nvjpeg2kImageInfo_t& image_info, decode_params_t& params,	vector<partial_decode_info>& tile_window_data)
-//{
-//	uint32_t tile_id = 0;
-//	for (uint32_t tile_y0 = 0; tile_y0 < image_info.image_height; tile_y0 += image_info.tile_height)
-//	{
-//		for (uint32_t tile_x0 = 0; tile_x0 < image_info.image_width; tile_x0 += image_info.tile_width)
-//		{
-//			// include min and max functions in braces for windows builds issues
-//			uint32_t tile_y1 = (std::min)(tile_y0 + image_info.tile_height, image_info.image_height);
-//			uint32_t tile_x1 = (std::min)(tile_x0 + image_info.tile_width, image_info.image_width);
-//
-//			if (params.win_x0 < tile_x1 && params.win_x1 > tile_x0 &&
-//				params.win_y0 < tile_y1 && params.win_y1 > tile_y0)
-//			{
-//				partial_decode_info decode_data;
-//				decode_data.tile_id = tile_id;
-//				decode_data.win_tilex0 = (std::max)(tile_x0, params.win_x0);
-//				decode_data.win_tilex1 = (std::min)(tile_x1, params.win_x1);
-//				decode_data.win_tiley0 = (std::max)(tile_y0, params.win_y0);
-//				decode_data.win_tiley1 = (std::min)(tile_y1, params.win_y1);
-//				tile_window_data.push_back(decode_data);
-//
-//			}
-//			tile_id++;
-//
-//		}
-//	}
-//}
-
 
 
 
@@ -82,7 +52,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	RestartLoop = false;
 	Derive = 0.0;
 	HaveSub = false;
-	Af1 = Af2 = Af3 = Af4 =AfSub  = NULL;
+	Af1 = Af2 = Af3 = Af4 = Af5 = Af6 = Af7 = Af8 =AfSub  = NULL;
 	Font = Font32 = Font64 = NULL;
 	BlackBackground = Options.BlackBackground;
 	WaitLastStop = true;
@@ -962,10 +932,7 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				er = cudaMemcpy2D(chanB, (size_t)width * sizeof(unsigned short), output_image.pixel_data[2], pitch_in_bytes[2], width * sizeof(unsigned short), height, cudaMemcpyDeviceToHost);
 				if (er != cudaSuccess) { if (Options.verbose_flag) fprintf(fp_log, "\n cudaMemcpy2D Blue failed\n");  return RESULT_FAIL; }
 
-#ifdef WIN64
-				// wait the end of rendering
-				disp.join();
-#endif
+
 
 				//auto temps3 = MyGetCurrentTime();
 				//double tempsdecode2 = Duration(temps3, temps2);
@@ -985,6 +952,11 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 				Af6 = new thread(ThreadQuarter6, &Mem);
 				Af7 = new thread(ThreadQuarter7, &Mem);
 				Af8 = new thread(ThreadQuarter8, &Mem);
+
+#ifdef WIN64
+				// wait the end of rendering
+				disp.join();
+#endif
 
 				CurrentFrameNumber++;
 
@@ -1195,7 +1167,7 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 	if (Mem.IncrustFps)
 	{
 		char buf[512];
-		sprintf(buf, "fps %3.2f", Mem.DisplayFps);
+		sprintf(buf, "fps : %d   ", (int)(Mem.DisplayFps));
 		bool bget = get_text_and_rect(Renderer, 0, 0, buf, Font, &TextTexture, &MessageRect);
 		if (bget)
 		{
@@ -1230,6 +1202,8 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 				}
 
 	SDL_RenderPresent(Renderer);
+
+
 	//SDL_UpdateWindowSurface(Mem.mywin);
 
 }
@@ -1612,6 +1586,7 @@ std::chrono::time_point<std::chrono::system_clock> MyGetCurrentTime_t()
 
 void CPlayer::ThreadQuarter1(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL )
@@ -1681,6 +1656,7 @@ void CPlayer::ThreadQuarter1(void* Param)
 
 void CPlayer::ThreadQuarter2(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr==NULL)
@@ -1743,6 +1719,7 @@ void CPlayer::ThreadQuarter2(void* Param)
 }
 void CPlayer::ThreadQuarter3(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr == NULL)
@@ -1811,6 +1788,7 @@ void CPlayer::ThreadQuarter3(void* Param)
 
 void CPlayer::ThreadQuarter5(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr==NULL)
@@ -1875,6 +1853,7 @@ void CPlayer::ThreadQuarter5(void* Param)
 
 void CPlayer::ThreadQuarter6(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr==NULL)
@@ -1940,6 +1919,7 @@ void CPlayer::ThreadQuarter6(void* Param)
 
 void CPlayer::ThreadQuarter7(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr == NULL)
@@ -2005,6 +1985,7 @@ void CPlayer::ThreadQuarter7(void* Param)
 
 void CPlayer::ThreadQuarter4(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr == NULL)
@@ -2078,6 +2059,7 @@ void CPlayer::ThreadQuarter4(void* Param)
 
 void CPlayer::ThreadQuarter8(void* Param)
 {
+
 	SMemoire* Mem = (SMemoire*)Param;
 	SDL_Surface* scr = Mem->scr;
 	if (Mem->mywin == NULL || scr == NULL)
@@ -2117,7 +2099,6 @@ void CPlayer::ThreadQuarter8(void* Param)
 		for (int col = 0; col < w4; col++)
 		{
 			int p = width * li + (col + w34);
-
 			redbase = Mem->chanR[p];
 			greenbase = Mem->chanG[p];
 			bluebase = Mem->chanB[p];

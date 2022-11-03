@@ -241,7 +241,6 @@ public :
 	static void RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<SubTitle>& MySubTitles, int width, int height, vector<int>& IndiceSub, Uint32 i, SMemoire& Mem);
 	static bool get_text_and_rect(SDL_Renderer* renderer, int x, int y, const char* text, TTF_Font* font, SDL_Texture** texture, SDL_Rect* rect);
 
-	//void determine_tiles_to_decode(const nvjpeg2kImageInfo_t& image_info, decode_params_t& params, vector<partial_decode_info>& tile_window_data);
 
 	int From51toStereo(const SFiveDotOne* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
 	int FromStereotoStereo(const SStereo24b* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);

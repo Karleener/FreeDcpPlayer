@@ -31,6 +31,8 @@
 #include <SDL.h>
 #include <SDL_audio.h>
 
+int main_dcpplayer(int argc, const char** argv, bool& IsPlaying);
+
 class MyAppDCP : public wxApp
 {
 public:
@@ -62,26 +64,33 @@ MyAppDCP::~MyAppDCP()
 
 
 
-#if defined(WIN64) || defined(_WIN64)
+#if defined(WIN64_t) || defined(_WIN64_t)
 INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     PSTR lpCmdLine, INT nCmdShow)
 {
+    int res = 0;
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
     {
         std::cerr << "Could not initialize SDL.\n";
         return 1;
     }
 
-    return wxEntry(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+    res= wxEntry(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+    return res;
 }
 #else
 int main(int argc, char** argv)
 {
+    int res = 0;
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
     {
         std::cerr << "Could not initialize SDL.\n";
         return 1;
     }
-    return wxEntry(argc, argv);
+    bool m_IsPlaying = false;
+    
+    if (argc!=1) main_dcpplayer(argc,(const char **) argv, m_IsPlaying);
+    else     wxEntry(argc, argv);
+    return res;
 }
 #endif

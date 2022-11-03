@@ -28,9 +28,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	\version $Id$
 
 */
+
+//version 0.6.1 dev
+
 //version 0.6.0
 //change
 // use version 0.6.0 of nvjpeg2k_dll, allowing 4K cine decoding
+// half or full resolution decoding
 
 
 
@@ -105,12 +109,13 @@ Options:\n\
   -a <AudioDEvice>  - Audio device number, default 0.\n\
   -c <CPL mumber>	- CPL number to play, default 0.\n\
   -d <Display>      - Display number, default 0\n\
-  -f <start-frame>  - Starting frame number, default 0\n\
-  -g                - Black Background, default false\n\
   -i                - show progress bar, default false\n\
   -o				- Activate 5.1 sound output if input is 5.1\n\
+  -p				- Play direclty without pause\n\
   -h | -help        - Show help\n\
-  -V                - Show version information\n\
+  -i				- Display progress bar and frame number\n\
+  -j				- Display fps\n\
+  -s				- Play half resolution\n\
   -v                - Verbose, prints informative messages to stderr\n\
 \n\
   NOTES: o There is no option grouping, all options must be distinct arguments.\n\
@@ -121,7 +126,7 @@ Options:\n\
 		 o Press  ESC key to end the program\n\
 		 o Press space bar for play/pause\n\n\
 		 o Example  : FreeDcpPlayer \"c:/mydcp\" -a 0 -d 0\n\
-		 o This version is restricted to Uncrypted 5.1 and 2K DCP\n\
+		 o This version is restricted to Uncrypted 5.1 or stereo 2K or 4K DCP\n\
 		 o A Cuda based GPU with at least 6GB is required\n\n\
 		Portions of this software are copyright (c) <2006-2021> The FreeType\n\
 		Project(www.freetype.org).All rights reserved.\n\
@@ -130,6 +135,7 @@ Options:\n\
 		This software is provided 'as-is', without any express or implied\n\
 		warranty.In no event will the authors be held liable for any damages\n\
 		arising from the use of this software.\n\
+		VERSION 0.6.1\n\
 		copyright (c) <2006 - 2021> Johel Miteran - Karleener\n\n\
 ");
 }
@@ -164,7 +170,22 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	Kumu::FileReaderFactory defaultFactory;
 
 	CommandOptions Options(argc, argv);
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.0\n");
+
+#if defined(WIN64) || defined(_WIN64)
+	HANDLE consoleHandleOut, consoleHandleError;
+	if (AttachConsole(ATTACH_PARENT_PROCESS)) 
+	{
+		// Redirect unbuffered STDOUT to the console
+		consoleHandleOut = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (consoleHandleOut != INVALID_HANDLE_VALUE) 
+		{
+			freopen("CONOUT$", "w", stdout);
+			setvbuf(stdout, NULL, _IONBF, 0);
+		}
+	}
+#endif
+	if (Options.help_flag) usage();
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.1 \n");
 
 	if (Options.error_flag)
 	{
