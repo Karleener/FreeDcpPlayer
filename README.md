@@ -1,6 +1,6 @@
 # Free Dcp Player
 
-Free Dcp Player Nvidia GPU based for independent filmmakers - New version 0.6.0 - Support 4K DCP !!
+Free Dcp Player Nvidia GPU based for independent filmmakers - New version 0.6.1 - Support 4K DCP !!
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only i.e. from series 10, such as GTX 1060) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
@@ -55,6 +55,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 For beta tester : in case of problem, you can send me the file freedcpplayer.log to the email adresse  : karleener at orange.fr
 
+Minor modifications 03/11/2022 - version 0.6.1
+- small speed improvement, allowing full resolution 4K (at least for DCI Scope) decoding and screening
+- add command line support. 
+For example 
+freedcpplayer "c:\mydcpdir\Myshortfilm_SHR-1-25_S_Fr-EN_FR-NR_51_2K_karleener_20171009_SMPTE_OV" -a 3 -d 1 -i -j
+type freedcpplayer -h for help. If you run freedcpplayer without option, the GUI will be used.
+The command option allows screening DCPs in a batch file, optionnally scheduled by the OS.
 
 Major modifications 15/10/22 - version 0.6.0
 - Add 4k decoding thanks to the 0.6.0 version of nvjpeg2000 by Nvidia
