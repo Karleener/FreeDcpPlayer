@@ -4,7 +4,7 @@ Free Dcp Player Nvidia GPU based for independent filmmakers
 
 
 Beta Version 0.6.2 
-support multichannel audio (more than 5.1, with 5.1 or stero downsampling
+support multichannel audio (i.e. 7.1, with 5.1 or stereo downsampling)
 support non zero entrypoint
 Note that the progress bar show the position in the current reel or mxf, not the position in the full movie. To be modified later.
 
