@@ -134,6 +134,19 @@ struct SFiveDotOne // 5.1
 	uchar BR[3];
 };
 
+struct SSevenDotOne // 7.1
+{
+	uchar L[3];
+	uchar R[3];
+	uchar C[3];
+	uchar LFE[3];
+	uchar LSS[3];
+	uchar RSS[3];
+	uchar LRS[3];
+	uchar RRS[3];
+};
+
+
 struct SStereo24b
 {
 	uchar L[3];

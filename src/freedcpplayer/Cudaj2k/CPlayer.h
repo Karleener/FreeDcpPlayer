@@ -245,6 +245,8 @@ public :
 	int From51toStereo(const SFiveDotOne* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
 	int FromStereotoStereo(const SStereo24b* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
 	int From51to51_16B(const SFiveDotOne* GlobalBufferOneFrame, SFiveDotOne16B* AudioDevice, int NbSamples);
+	int FromXchannelstoStereo(const unsigned char *GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples);
+	int FromXchannelsto51(const unsigned char* GlobalBufferOneFrame, SFiveDotOne16B* AudioDevice, int NbSamples);
 	Uint32 DecodeTime(string chaineTps, double frame_rate,bool TypeCs);
 	SDL_Window* win_init_render(int w, int h, SDL_Renderer** Renderer, bool BlackBackGround, int NumDisplay, bool FullScreen);
 	void RefreshAndContinue();

@@ -79,7 +79,13 @@ CDcpParse::~CDcpParse()
 	for (int i = 0; i < scpl; i++)
 	{
 		int s = CplVector[i]->VecReel.size();
-		for (int k = 0; k <s; k++) delete   CplVector[i]->VecReel[k];
+		for (int k = 0; k < s; k++)
+		{
+			if (CplVector[i]->VecReel[k]->ptrMainPicture) delete CplVector[i]->VecReel[k]->ptrMainPicture;
+			if (CplVector[i]->VecReel[k]->ptrMainSound) delete CplVector[i]->VecReel[k]->ptrMainSound;
+			if (CplVector[i]->VecReel[k]->ptrSubtitle) delete CplVector[i]->VecReel[k]->ptrSubtitle;
+			delete   CplVector[i]->VecReel[k];
+		}
 		delete CplVector[i];
 	}
 	int sasset = AssetVector.size();
@@ -241,18 +247,21 @@ void CDcpParse::ParseCPL(CAsset* OneAsset,  string MyPath)
 			}
 			if (ki != -1) 
 			{
-				AssetVector[ki]->sEditRate = MainPicture.child("EditRate").first_child().value();
-				AssetVector[ki]->iDurationIntrisic = atoi(MainPicture.child("IntrinsicDuration").first_child().value());
-				AssetVector[ki]->iEntryPoint = atoi(MainPicture.child("EntryPoint").first_child().value());
-				AssetVector[ki]->iDuration = atoi(MainPicture.child("Duration").first_child().value());
-				AssetVector[ki]->sFrameRate = MainPicture.child("FrameRate").first_child().value();
+				CAsset* ptrAsset = new CAsset;
+				ptrAsset->sID = AssetVector[ki]->sID;
+				ptrAsset->sFileName= AssetVector[ki]->sFileName;
+				ptrAsset->sPath = AssetVector[ki]->sPath;
+				ptrAsset->sEditRate = MainPicture.child("EditRate").first_child().value();
+				ptrAsset->iDurationIntrisic = atoi(MainPicture.child("IntrinsicDuration").first_child().value());
+				ptrAsset->iEntryPoint = atoi(MainPicture.child("EntryPoint").first_child().value());
+				ptrAsset->iDuration = atoi(MainPicture.child("Duration").first_child().value());
+				ptrAsset->sFrameRate = MainPicture.child("FrameRate").first_child().value();
 				SRational Fr;
-				if( DecodeRational(AssetVector[ki]->sFrameRate.c_str(), Fr)) AssetVector[ki]->dFrameRate=double(Fr.Numerator)/ double(Fr.Denominator);
-				AssetVector[ki]->sScreenAspectRatio = MainPicture.child("ScreenAspectRatio").first_child().value();
+				if( DecodeRational(ptrAsset->sFrameRate.c_str(), Fr))ptrAsset->dFrameRate=double(Fr.Numerator)/ double(Fr.Denominator);
+				ptrAsset->sScreenAspectRatio = MainPicture.child("ScreenAspectRatio").first_child().value();
 				string Annotation = MainPicture.child("AnnotationText").first_child().value();
-				if (Annotation != "") AssetVector[ki]->sAnnotation = Annotation;
-
-				OneReel->ptrMainPicture = AssetVector[ki];
+				if (Annotation != "") ptrAsset->sAnnotation = Annotation;
+				OneReel->ptrMainPicture = ptrAsset;
 				VideoOk = true;
 			}
 
@@ -272,17 +281,21 @@ void CDcpParse::ParseCPL(CAsset* OneAsset,  string MyPath)
 			}
 			if (ki != -1)
 			{
-				AssetVector[ki]->sEditRate = MainSound.child("EditRate").first_child().value();
-				AssetVector[ki]->iDurationIntrisic = atoi(MainSound.child("IntrinsicDuration").first_child().value());
-				AssetVector[ki]->iEntryPoint = atoi(MainSound.child("EntryPoint").first_child().value());
-				AssetVector[ki]->iDuration = atoi(MainSound.child("Duration").first_child().value());
-				AssetVector[ki]->sFrameRate = MainSound.child("FrameRate").first_child().value();
+				CAsset* ptrAsset = new CAsset;
+				ptrAsset->sID = AssetVector[ki]->sID;
+				ptrAsset->sFileName = AssetVector[ki]->sFileName;
+				ptrAsset->sPath = AssetVector[ki]->sPath;
+				ptrAsset->sEditRate = MainPicture.child("EditRate").first_child().value();
+				ptrAsset->iDurationIntrisic = atoi(MainPicture.child("IntrinsicDuration").first_child().value());
+				ptrAsset->iEntryPoint = atoi(MainPicture.child("EntryPoint").first_child().value());
+				ptrAsset->iDuration = atoi(MainPicture.child("Duration").first_child().value());
+				ptrAsset->sFrameRate = MainPicture.child("FrameRate").first_child().value();
 				SRational Fr;
-				if (DecodeRational(AssetVector[ki]->sFrameRate.c_str(), Fr)) AssetVector[ki]->dFrameRate = double(Fr.Numerator) / double(Fr.Denominator);
-				AssetVector[ki]->sScreenAspectRatio = MainSound.child("ScreenAspectRatio").first_child().value();
-				string Annotation = MainSound.child("AnnotationText").first_child().value();
-				if (Annotation != "") AssetVector[ki]->sAnnotation = Annotation;
-				OneReel->ptrMainSound = AssetVector[ki];
+				if (DecodeRational(ptrAsset->sFrameRate.c_str(), Fr))ptrAsset->dFrameRate = double(Fr.Numerator) / double(Fr.Denominator);
+				ptrAsset->sScreenAspectRatio = MainPicture.child("ScreenAspectRatio").first_child().value();
+				string Annotation = MainPicture.child("AnnotationText").first_child().value();
+				if (Annotation != "") ptrAsset->sAnnotation = Annotation;
+				OneReel->ptrMainSound = ptrAsset;
 				SoundOk = true;
 			}
 		}
@@ -302,15 +315,21 @@ void CDcpParse::ParseCPL(CAsset* OneAsset,  string MyPath)
 			}
 			if (ki != -1)
 			{
-				AssetVector[ki]->sEditRate = MainSubtitle.child("EditRate").first_child().value();
-				AssetVector[ki]->iDurationIntrisic = atoi(MainSubtitle.child("IntrinsicDuration").first_child().value());
-				AssetVector[ki]->iEntryPoint = atoi(MainSubtitle.child("EntryPoint").first_child().value());
-				AssetVector[ki]->iDuration = atoi(MainSubtitle.child("Duration").first_child().value());
-				AssetVector[ki]->sFrameRate = MainSubtitle.child("FrameRate").first_child().value();
-				AssetVector[ki]->sScreenAspectRatio = MainSubtitle.child("ScreenAspectRatio").first_child().value();
-				string Annotation = MainSubtitle.child("AnnotationText").first_child().value();
-				if (Annotation != "") AssetVector[ki]->sAnnotation = Annotation;
-				OneReel->ptrSubtitle = AssetVector[ki];
+				CAsset* ptrAsset = new CAsset;
+				ptrAsset->sID = AssetVector[ki]->sID;
+				ptrAsset->sFileName = AssetVector[ki]->sFileName;
+				ptrAsset->sPath = AssetVector[ki]->sPath;
+				ptrAsset->sEditRate = MainPicture.child("EditRate").first_child().value();
+				ptrAsset->iDurationIntrisic = atoi(MainPicture.child("IntrinsicDuration").first_child().value());
+				ptrAsset->iEntryPoint = atoi(MainPicture.child("EntryPoint").first_child().value());
+				ptrAsset->iDuration = atoi(MainPicture.child("Duration").first_child().value());
+				ptrAsset->sFrameRate = MainPicture.child("FrameRate").first_child().value();
+				SRational Fr;
+				if (DecodeRational(ptrAsset->sFrameRate.c_str(), Fr))ptrAsset->dFrameRate = double(Fr.Numerator) / double(Fr.Denominator);
+				ptrAsset->sScreenAspectRatio = MainPicture.child("ScreenAspectRatio").first_child().value();
+				string Annotation = MainPicture.child("AnnotationText").first_child().value();
+				if (Annotation != "") ptrAsset->sAnnotation = Annotation;
+				OneReel->ptrSubtitle = ptrAsset;
 				SubOk = true;
 			}
 

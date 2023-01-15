@@ -19,7 +19,7 @@
  *****************************************************************************/
 
  /**
-  * @file CPlayer.cpp 0.6.1
+  * @file CPlayer.cpp 0.6.2
   * @screen reels using Nvidia nvjp2k library 
   */
 
@@ -114,6 +114,9 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	if (mywin) SDL_GetWindowSize(mywin, &win_w,&win_h);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	start_frame = Options.start_frame;
+	//0.6.2
+	start_frame = ptrReel_i->ptrMainPicture->iEntryPoint;
+	last_frame = ptrReel_i->ptrMainPicture->iEntryPoint + ptrReel_i->ptrMainPicture->iDuration;
 	offset_frame = start_frame-1;
 	string MyPath = DcpParse.DcpPath;
 	if (MyPath=="")
@@ -225,7 +228,24 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 		SizeAudioStruct = sizeof(SStereo24b);
 		SizeAudioDeviceStruct = sizeof(SStereo);
 	}
-	if (!(ADesc.ChannelCount == 2 || ADesc.ChannelCount == 6)) { if (Options.verbose_flag) fprintf(fp_log, "Audio 5.1 and stereo are the only audio format supported\nYou audio file contains %d channels\n\n",ADesc.ChannelCount);  return RESULT_FAIL; }
+	//0.6.2
+	if (ADesc.ChannelCount>6 && Options.Output51 == false)
+	{
+		SizeAudioStruct = ADesc.ChannelCount*3;
+		SizeAudioDeviceStruct = sizeof(SStereo);
+	}
+	if (ADesc.ChannelCount > 6 && Options.Output51 == true)
+	{
+		SizeAudioStruct = ADesc.ChannelCount * 3;
+		SizeAudioDeviceStruct = sizeof(SFiveDotOne16B);
+	}
+
+	if (!(ADesc.ChannelCount == 2 || ADesc.ChannelCount == 6)) 
+	{ 
+		if (Options.verbose_flag) 
+			fprintf(fp_log, "Audio is not 5.1 neither stereo \nYou audio file contains %d channels\n\n",ADesc.ChannelCount); 
+		//return RESULT_FAIL; 
+	}
 
 	GlobalBufferOneFrame = (unsigned char*)malloc(NbSampleperImage * SizeAudioStruct * NbBlock);
 
@@ -272,7 +292,8 @@ Result_t CPlayer::InitialisationJ2K()
 	pReader->FillPictureDescriptor(PDesc);
 	DecodeLevel = PDesc.CodingStyleDefault.SPcod.DecompositionLevels;
 	//frame_count = PDesc.ContainerDuration;
-	frame_count = ptrReel->ptrMainPicture->iDuration;
+	frame_count =ptrReel->ptrMainPicture->iDuration+ ptrReel->ptrMainPicture->iEntryPoint;
+	
 	if (Options.verbose_flag)
 	{
 		fprintf(fp_log, "Frame Buffer size: %u\n", Options.fb_size);
@@ -449,13 +470,13 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				//std::cout << std::endl;
 			}
 			//Uint32 Duration = TDesc.ContainerDuration;
-			Uint32 frame_count = IndiceSub.size();
+			Uint32 frame_ct = IndiceSub.size();
 			Uint32 CurrentFrame = 0;
 			for (Uint32 i = 1; i < MySubTitles.size(); i++)
 			{
 				
-				Uint32 FrameIn = min(StartFrameSub+ DecodeTime(MySubTitles[i].TimeIn, frame_rate,true),frame_count);
-				Uint32 FrameOut = min(StartFrameSub+ DecodeTime(MySubTitles[i].TimeOut, frame_rate,true),frame_count);
+				Uint32 FrameIn = min(StartFrameSub+ DecodeTime(MySubTitles[i].TimeIn, frame_rate,true),frame_ct);
+				Uint32 FrameOut = min(StartFrameSub+ DecodeTime(MySubTitles[i].TimeOut, frame_rate,true),frame_ct);
 				for (Uint32 t = CurrentFrame; t < FrameIn; t++)
 				{
 					IndiceSub[t] = 0; // empty
@@ -466,7 +487,7 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				}
 				CurrentFrame = FrameOut;
 			}
-			for (Uint32 t = CurrentFrame; t < frame_count; t++)
+			for (Uint32 t = CurrentFrame; t < frame_ct; t++)
 			{
 				IndiceSub[t] = 0; // empty
 			}
@@ -546,7 +567,7 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				//std::cout << std::endl;
 			}
 			//Uint32 Duration = TDesc.ContainerDuration;
-			Uint32 frame_count = IndiceSub.size();
+			Uint32 frame_ct = IndiceSub.size();
 			Uint32 CurrentFrame = 0;
 			for (Uint32 i = 1; i < MySubTitles.size(); i++)
 			{
@@ -563,7 +584,7 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 				}
 				CurrentFrame = FrameOut;
 			}
-			for (Uint32 t = CurrentFrame; t < frame_count; t++)
+			for (Uint32 t = CurrentFrame; t < frame_ct; t++)
 			{
 				IndiceSub[t] = 0; // empty
 			}
@@ -586,7 +607,7 @@ void CPlayer::PrepareFirstAudioBuffering(void *Param)
 	int r=0;
 	int NbBlockBufferAudio = BUFFER_AUDIO;// pPlayer->NbBlock;
 	pPlayer->AudioSuccess = false;
-	pPlayer->last_frame = pPlayer->frame_count;
+	//pPlayer->last_frame = pPlayer->frame_count ;
 	ui32_t start_frame = pPlayer->start_frame;
 	if (start_frame >= pPlayer->last_frame) { 
 		if (pPlayer->Options.verbose_flag) fprintf(pPlayer->fp_log, "start_frame=%d is greater or equal than last_frame=%d\n", start_frame, pPlayer->last_frame);
@@ -636,9 +657,11 @@ void CPlayer::PrepareFirstAudioBuffering(void *Param)
 	}
 	if (lenaudio > 0)
 	{
-		if (pPlayer->ADesc.ChannelCount==6 && pPlayer->Options.Output51==false) pPlayer->From51toStereo((SFiveDotOne*)pPlayer->GlobalBufferOneFrame, (SStereo*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
+		if (pPlayer->ADesc.ChannelCount == 6 && pPlayer->Options.Output51==false) pPlayer->From51toStereo((SFiveDotOne*)pPlayer->GlobalBufferOneFrame, (SStereo*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
 		if (pPlayer->ADesc.ChannelCount == 6 && pPlayer->Options.Output51 == true) pPlayer->From51to51_16B((SFiveDotOne*)pPlayer->GlobalBufferOneFrame, (SFiveDotOne16B*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
 		if (pPlayer->ADesc.ChannelCount == 2) pPlayer->FromStereotoStereo((SStereo24b*)pPlayer->GlobalBufferOneFrame, (SStereo*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
+  		if (pPlayer->ADesc.ChannelCount > 6 && pPlayer->Options.Output51 == false) pPlayer->FromXchannelstoStereo(pPlayer->GlobalBufferOneFrame, (SStereo*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
+		if (pPlayer->ADesc.ChannelCount > 6 && pPlayer->Options.Output51 == true) pPlayer->FromXchannelsto51(pPlayer->GlobalBufferOneFrame, (SFiveDotOne16B*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * lenaudio);
 		r= SDL_QueueAudio(pPlayer->Audiodev, (const void*)pPlayer->AudioForDevice, pPlayer->NbSampleperImage * pPlayer->SizeAudioDeviceStruct * lenaudio);
 		if (r != 0) {
 			if(pPlayer->Options.verbose_flag) fprintf(pPlayer->fp_log,"Audio device error\n"); 
@@ -826,7 +849,7 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 
 		CurrentFrameNumber = start_frame + 1;
 		
-		while (VideoSuccess && CurrentFrameNumber < last_frame && CurrentFrameNumber >= start_frame)
+ 		while (VideoSuccess && CurrentFrameNumber < last_frame && CurrentFrameNumber >= start_frame)
 		{//SDL_RaiseWindow(mywin);
 			//RestartLoop = false;
 			StateMachine();
@@ -851,6 +874,8 @@ Result_t CPlayer::MainLoop(bool WaitAfterFirstFrame)
 					if (ADesc.ChannelCount == 6 && Options.Output51 == false) 	From51toStereo((SFiveDotOne*)GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage);
 					if (ADesc.ChannelCount == 6 && Options.Output51==true ) 	From51to51_16B((SFiveDotOne*)GlobalBufferOneFrame, (SFiveDotOne16B*)AudioForDevice, NbSampleperImage);
 					if (ADesc.ChannelCount == 2)	FromStereotoStereo((SStereo24b*)GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage);
+					if (ADesc.ChannelCount > 6 && Options.Output51 == false) FromXchannelstoStereo(GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage);
+					if (ADesc.ChannelCount > 6 && Options.Output51 == true) FromXchannelsto51(GlobalBufferOneFrame, (SFiveDotOne16B*)AudioForDevice, NbSampleperImage);
 					SDL_QueueAudio(Audiodev, (const void*)AudioForDevice, NbSampleperImage * SizeAudioDeviceStruct);
 				}
 				// decode video
@@ -1054,6 +1079,8 @@ float CPlayer::Synchronisation()
 			if (ADesc.ChannelCount == 6 && Options.Output51==false) From51toStereo((SFiveDotOne*)GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage * lenaudio);
 			if (ADesc.ChannelCount == 6 && Options.Output51 == true) From51to51_16B((SFiveDotOne*)GlobalBufferOneFrame, (SFiveDotOne16B*)AudioForDevice, NbSampleperImage * lenaudio);
 			if (ADesc.ChannelCount == 2)FromStereotoStereo((SStereo24b*)GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage * lenaudio);
+			if (ADesc.ChannelCount > 6 && Options.Output51 == false) FromXchannelstoStereo(GlobalBufferOneFrame, (SStereo*)AudioForDevice, NbSampleperImage*lenaudio);
+			if (ADesc.ChannelCount > 6 && Options.Output51 == true) FromXchannelsto51(GlobalBufferOneFrame, (SFiveDotOne16B*)AudioForDevice, NbSampleperImage * lenaudio);
 			int r = SDL_QueueAudio(Audiodev, (const void*)AudioForDevice, NbSampleperImage * SizeAudioDeviceStruct * lenaudio);
 		}
 		NumFrameAudio += NbBlock;
@@ -1405,6 +1432,131 @@ void CPlayer::RefreshAndContinue()
 	RestartLoop = true;
 
 }
+
+struct OneChannel
+{
+	uchar a;
+	uchar b;
+	uchar c;
+};
+int CPlayer::FromXchannelstoStereo(const unsigned char* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples)
+{
+	if (GlobalBufferOneFrame == NULL) return -1;
+	if (AudioDeviceStereo == NULL) return -2;
+	if (NbSamples < 0) return -3;
+
+	SFiveDotOne Sample51;
+	float fechR, fechC, fechL, fechBR, fechBL; // discard LFE
+	int echR, echC, echL, echBR, echBL;
+	float fech;
+	unsigned int ch = ADesc.ChannelCount*3 ; // 24 bits
+ 	OneChannel oc;
+	OneChannel* ptrData = (OneChannel*)GlobalBufferOneFrame;
+	uchar* ptr;
+	unsigned int p = 0;
+	for (unsigned int j = 0; j < NbSamples; j++)
+	{
+		//int i = (j * BytePerSampleOutput * NbChannelOut); //  stereo output
+		p = j * ch;
+		ptr = (uchar *)GlobalBufferOneFrame + p; // L
+
+		echL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechL = (float)(echL) / float(16777216.0);
+		fechL = (fechL * float(0x7fff));
+
+		ptr += 3; //R
+		echR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechR = (float)(echR) / float(16777216.0);
+		fechR = (fechR * float(0x7fff));
+
+		ptr += 3; //C
+		echC = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechC = (float)(echC) / float(16777216.0);
+		fechC = (fechC * float(0x7fff));// *0.5F;
+
+		ptr += 3; // LFE
+		ptr += 3; // BL (Ls)
+		echBL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechBL = (float)(echBL) / float(16777216.0);
+		fechBL = (fechBL * float(0x7fff));
+
+		ptr += 3; // BR (Rs)
+		echBR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechBR = (float)(echBR) / float(16777216.0);
+		fechBR = (fechBR * float(0x7fff));
+
+		fech = (fechR + 0.5*fechC + 0.5*fechBR);
+		AudioDeviceStereo[j].R = short(fech);
+		fech = (fechL + 0.5*fechC + 0.5*fechBL);
+		AudioDeviceStereo[j].L = short(fech);
+	}
+	return 0;
+}
+
+int CPlayer::FromXchannelsto51(const unsigned char* GlobalBufferOneFrame, SFiveDotOne16B* AudioDevice, int NbSamples)
+{
+	if (GlobalBufferOneFrame == NULL) return -1;
+	if (AudioDevice == NULL) return -2;
+	if (NbSamples < 0) return -3;
+
+	SFiveDotOne Sample51;
+	float fechR, fechC, fechL, fechBR, fechBL, fechLFE;
+	int echR, echC, echL, echBR, echBL,echLFE;
+	float fech;
+	unsigned int ch = ADesc.ChannelCount * 3; // 24 bits
+	OneChannel oc;
+	OneChannel* ptrData = (OneChannel*)GlobalBufferOneFrame;
+	uchar* ptr;
+	unsigned int p = 0;
+	for (unsigned int j = 0; j < NbSamples; j++)
+	{
+		//int i = (j * BytePerSampleOutput * NbChannelOut); //  stereo output
+		p = j * ch;
+		ptr = (uchar*)GlobalBufferOneFrame + p; // L
+
+		echL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechL = (float)(echL) / float(16777216.0);
+		fechL = (fechL * float(0x7fff));
+		AudioDevice[j].L = short(fechL);
+
+		ptr += 3; //R
+		echR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechR = (float)(echR) / float(16777216.0);
+		fechR = (fechR * float(0x7fff));
+		AudioDevice[j].R= short(fechR);
+
+		ptr += 3; //C
+		echC = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechC = (float)(echC) / float(16777216.0);
+		fechC = (fechC * float(0x7fff));// *0.5F;
+		AudioDevice[j].C = short(fechC);
+
+		ptr += 3; // LFE
+		echLFE = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechLFE = (float)(echLFE) / float(16777216.0);
+		fechLFE = (fechLFE * float(0x7fff));
+		AudioDevice[j].LFE = short(fechLFE);
+
+		ptr += 3; // BL (Ls)
+		echBL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechBL = (float)(echBL) / float(16777216.0);
+		fechBL = (fechBL * float(0x7fff));
+		AudioDevice[j].BL = short(fechBL);
+
+		ptr += 3; // BR (Rs)
+		echBR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
+		fechBR = (float)(echBR) / float(16777216.0);
+		fechBR = (fechBR * float(0x7fff));
+		AudioDevice[j].BR = short(fechBR);
+
+
+	}
+	return 0;
+}
+
+
+
+
 
 int CPlayer::From51toStereo(const SFiveDotOne* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples)
 {
