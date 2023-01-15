@@ -8,7 +8,7 @@ support multichannel audio (i.e. 7.1, with 5.1 or stereo downsampling)
 support non zero entrypoint
 Note that the progress bar show the position in the current reel or mxf, not the position in the full movie. To be modified later.
 
-New version 0.6.1 - Support 4K DCP !!
+Support 4K DCP !!
 
 FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly based on
 - Nvidia jpeg2000 GPU decoder (Pascal and more recent architecture only i.e. from series 10, such as GTX 1060) - https://developer.nvidia.com/blog/accelerating-jpeg-2000-decoding-for-digital-pathology-and-satellite-images-using-the-nvjpeg2000-library/
