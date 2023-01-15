@@ -54,6 +54,9 @@ https://drive.google.com/file/d/1o6mZ97XvE4VkKvm5fVJQQruFNIWV9dA0/view?usp=shari
 Tutorial on Youtube
 https://www.youtube.com/watch?v=Cni9rMPJAGU
 
+Another link for testing DCP
+https://dpel.aswf.io/asc-stem2/
+
 
 This program is not intended to replace professional software but can help independent filmmakers 
 to check their DCP on their PC after generating their own DCP with Da Vinci Resolve or Dcp-o-matic.
