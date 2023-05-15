@@ -62,7 +62,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "KM_fileio.h"
-#include "WavFileWriter.h"
+// #include "WavFileWriter.h"
 #include "AS_DCP.h"
 #include "KM_platform.h"
 #include "KM_error.h"

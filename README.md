@@ -1,7 +1,8 @@
 # Free Dcp Player
 
-Free Dcp Player Nvidia GPU based for independent filmmakers
+## Intro
 
+Free Dcp Player Nvidia GPU based for independent filmmakers
 
 Version 0.6.2 
 support multichannel audio (i.e. 7.1, with 5.1 or stereo downsampling)
@@ -37,6 +38,51 @@ Press "j" to enable or disable current fps information (from the image processin
 - Press space bar to start playing
 
 This version has been tested sucessfully with a Geforce 1060, 1070, 2080,3050, under Windows 10 , Windows 11, and Ubuntu 20.04
+
+## Ubuntu installation
+
+### Install AS-DCP Lib
+
+```
+git clone https://github.com/cinecert/asdcplib
+cd asdcplib
+cmake .
+make
+sudo make install
+```
+
+### Add the nvidia jpeg2000 Ubuntu repository
+
+Follow the instructions on the nvidia page:
+
+https://developer.nvidia.com/nvjpeg
+
+Choose the .deb option. This will add the repository.
+
+### Install the required Ubuntu packages
+
+```
+sudo apt install libsdl2-ttf-dev libsdl2-ttf-2.0-0 libwxgtk3.0-gtk3-dev libnvjpeg-dev-12-0
+```
+
+### Compilation
+
+```
+cd src/freedcpplayer
+cmake .
+make
+sudo make install
+```
+
+### How to run
+
+Just type in:
+
+```
+freedcpplayer
+```
+
+## Troubeshooting & Tips
 
 The program won't work on Maxwell architecture or older (GTX 9xx series)
 
