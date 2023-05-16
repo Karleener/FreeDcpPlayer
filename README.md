@@ -1,7 +1,8 @@
 # Free Dcp Player
 
-Free Dcp Player Nvidia GPU based for independent filmmakers
+## Intro
 
+Free Dcp Player Nvidia GPU based for independent filmmakers
 
 Version 0.6.2 
 support multichannel audio (i.e. 7.1, with 5.1 or stereo downsampling)
@@ -22,26 +23,77 @@ Some part of the code is partially inspired from VLC DCP project from Nicolas Be
 The current version of FreeDcpPlayer,  is in a beta state, for testing purpose only, limited to simple DCP :
 SMPTE or Interop, 2k and 4k (version 0.6.0), with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
 
-A new wxWidgets based interface allows to lunch the main program, x64 anx Ubuntu compatible.
+The wxWidgets based interface allows to launch the main program which is Windows and Ubuntu compatible.
 
-Interface is keyboard based (Esc to stop, space bar to play and pause, and left right arrows for fast rewind or play). 
-image per image mode is possible in paused mode, using up and down arrows.
-User can also double-clic on the picture  : the horizontal position of the click give the start position of the lecture.
-Press “i” to enable or disable progress bar.
-Press "j" to enable or disable current fps information (from the image processing time).
+## Keyboard shortcuts
 
-- Choose the DCP (folder containing ASSETMAP.xml or ASSETMAP file)
-- Choose audio and display device
-- Choose 5.1 output if available.
-- Clic on "Run FreeDcpPlayer"
-- Press space bar to start playing
+ - Stop = Esc
+ - Play = space bar
+ - Fast rewind or play = left right arrow keys
+ - Frame by frame = up and down arrows during stop
+ - toggle progress bar = i
+ - Press "j" to enable or disable current fps information (from the image processing time).
+ - User can also double-click on the picture  : the horizontal position of the click give the start position of the lecture.
 
-This version has been tested sucessfully with a Geforce 1060, 1070, 2080,3050, under Windows 10 , Windows 11, and Ubuntu 20.04
+## How to use
+
+ - Choose the DCP (folder containing ASSETMAP.xml or ASSETMAP file)
+ - Choose audio and display device
+ - Choose 5.1 output if available.
+ - Clic on "Run FreeDcpPlayer"
+ - Press space bar to start playing
+
+This version has been tested sucessfully with a Geforce 1060, 1070, 2080, 3050, Quadro M2000 under Windows 10 , Windows 11, and Ubuntu 20.04. 
+
+## Ubuntu installation
+
+### Install AS-DCP Lib
+
+```
+git clone https://github.com/cinecert/asdcplib
+cd asdcplib
+cmake .
+make
+sudo make install
+```
+
+### Add the nvidia jpeg2000 Ubuntu repository
+
+Follow the instructions on the nvidia page:
+
+https://developer.nvidia.com/nvjpeg
+
+Choose the .deb option. This will add the nvjpeg repository to your system.
+
+### Install the required Ubuntu packages
+
+```
+sudo apt install libsdl2-dev libsdl2-ttf-dev libsdl2-ttf-2.0-0 libwxgtk3.0-gtk3-dev libnvjpeg-dev-12-0
+```
+
+### Compilation and installation
+
+```
+cd src/freedcpplayer
+cmake .
+make
+sudo make install
+```
+
+### How to run
+
+Just type in:
+
+```
+freedcpplayer
+```
+
+## Troubeshooting & Tips
 
 The program won't work on Maxwell architecture or older (GTX 9xx series)
 
-If you disable "Full resolution" , image is screened with a 100% scale (One screen pixel = one image pixel).
-Real time 4k decoding/rendering can be slow. You can "Enable Half resolution decoding" in order to accelerate.
+If you disable "Full resolution" , the images are displayed without any scaling (i.e. one screen pixel = one image pixel).
+Real time 4k (or even 2K) decoding/rendering can be slow. You can "Enable Half resolution decoding" in order to accelerate.
 
 The program will generate a freedcpplayer.log file if the box “Log” is checked.
 
@@ -61,10 +113,15 @@ https://dpel.aswf.io/asc-stem2/
 This program is not intended to replace professional software but can help independent filmmakers 
 to check their DCP on their PC after generating their own DCP with Da Vinci Resolve or Dcp-o-matic.
 
+For beta tester : in case of problem, you can send me the file freedcpplayer.log to the email adresse  : karleener at orange.fr
+
+# License (MIT)
+
+If not specified otherwise (see individual files):
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-For beta tester : in case of problem, you can send me the file freedcpplayer.log to the email adresse  : karleener at orange.fr
+# Changelog
 
 Minor modifications 03/11/2022 - version 0.6.1
 - small speed improvement, allowing full resolution 4K (at least for DCI Scope) decoding and screening
