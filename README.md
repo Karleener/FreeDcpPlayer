@@ -21,7 +21,7 @@ FreeDcpPlayer is a “Digital Cinema Package”  player ,  a project mainly base
 Some part of the code is partially inspired from VLC DCP project from Nicolas Bertrand.
 
 The current version of FreeDcpPlayer,  is in a beta state, for testing purpose only, limited to simple DCP :
-SMPTE or Interop, 2k and 4k (version 0.6.0), with stereo or 5.1 soundtrack, and optionally subtitles, not encrypted.
+SMPTE or Interop, 2k and 4k (version 0.6.2), with stereo, 5.1 or 7.1 soundtrack, and optionally subtitles, not encrypted.
 
 The wxWidgets based interface allows to launch the main program which is Windows and Ubuntu compatible.
 
@@ -90,6 +90,8 @@ freedcpplayer
 
 ## Troubeshooting & Tips
 
+Note that if you change the hardware (adding/removing a screen or audio interface), it is necessary to close FreeDcpPlayer, delete the config.txt file, then restart FreeDcpPlayer
+
 The program won't work on Maxwell architecture or older (GTX 9xx series)
 
 If you disable "Full resolution" , the images are displayed without any scaling (i.e. one screen pixel = one image pixel).
@@ -115,11 +117,24 @@ to check their DCP on their PC after generating their own DCP with Da Vinci Reso
 
 For beta tester : in case of problem, you can send me the file freedcpplayer.log to the email adresse  : karleener at orange.fr
 
-# License (MIT)
+# License (GPL)
 
 If not specified otherwise (see individual files):
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 3.0 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+
 
 # Changelog
 
@@ -135,9 +150,6 @@ Major modifications 15/10/22 - version 0.6.0
 - Add 4k decoding thanks to the 0.6.0 version of nvjpeg2000 by Nvidia
 - Half resolution decoding option (full resolution by default)
 - direct play without pause
-
-Note that if you change the hardware (adding/removing a screen or audio interface), it is necessary to close FreeDcpPlayer, delete the config.txt file, then restart FreeDcpPlayer
-
 
 Minor modifications 22/03/22 - version 0.4.3
 - added fast navigation with page up and page down keys (10% of reel duration)
