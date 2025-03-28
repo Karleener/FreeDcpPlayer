@@ -137,6 +137,10 @@ If not specified otherwise (see individual files):
 
 
 # Changelog
+Minor modifications 28/03/2025 - version 0.6.3
+Improve sound downmix 5.1 to 2.0 
+add of a volume slider (-6dB to 6dB) in main dialog box
+
 
 Minor modifications 03/11/2022 - version 0.6.1
 - small speed improvement, allowing full resolution 4K (at least for DCI Scope) decoding and screening
