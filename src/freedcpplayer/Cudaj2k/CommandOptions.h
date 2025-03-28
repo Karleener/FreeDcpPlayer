@@ -91,6 +91,7 @@ public:
 	bool IncrustFps;
 	bool HalfResolution;
 	bool PlayDirect;
+	float AudioGain;
 
 	//
 	Rational PictureRate()
@@ -122,7 +123,7 @@ public:
 		version_flag(false), help_flag(false), stereo_image_flag(false), number_width(6),
 		start_frame(0), duration(0xffffffff), duration_flag(false), j2c_pedantic(true),
 		picture_rate(24), fb_size(FRAME_BUFFER_SIZE), file_prefix(0),
-		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false),HalfResolution(false), PlayDirect(false)
+		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false),HalfResolution(false), PlayDirect(false), AudioGain(0.0F)
 	{
 		memset(key_value, 0, KeyLen);
 		memset(key_id_value, 0, UUIDlen);
@@ -192,7 +193,10 @@ public:
 						}
 					}
 					break;
-
+				case 'l':
+					TEST_EXTRA_ARG(i, 'l');
+					AudioGain =(float) Kumu::xabs(strtol(argv[i], 0, 10)) -6.0F; // gain from -6dB to 6dB
+					break;
 				case 'm': read_hmac = true; break;
 				case 'o': Output51 = true; break; // activate 5.1 output
 

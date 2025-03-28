@@ -29,9 +29,17 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+//version 0.6.3
+// improve 5.1 to 2.0 mixdown
+// adding gain audio parameter in dB
+//-l 1 add one dB 
+// -l 0 is native audio
+//-l -1 remove one dB
+// audiogain is also alplied to all audio format
+
 //version 0.6.2
 //change
-// adding multichannel audio support with 5.1 or stero downsampling
+// adding multichannel audio support with 5.1 or stero mixdown
 // adding entrypoint different from 0
 
 //version 0.6.1 
@@ -62,6 +70,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "KM_fileio.h"
+//#include "WavFileWriter.h"
 #include "AS_DCP.h"
 #include "KM_platform.h"
 #include "KM_error.h"
@@ -141,7 +150,7 @@ Options:\n\
 		This software is provided 'as-is', without any express or implied\n\
 		warranty.In no event will the authors be held liable for any damages\n\
 		arising from the use of this software.\n\
-		VERSION 0.6.2\n\
+		VERSION 0.6.3\n\
 		copyright (c) <2006 - 2021> Johel Miteran - Karleener\n\n\
 ");
 }
@@ -191,7 +200,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	}
 #endif
 	if (Options.help_flag) usage();
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.2 \n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.3 \n");
 
 	if (Options.error_flag)
 	{

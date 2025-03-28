@@ -33,14 +33,21 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	fgSizer1->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
 
+
 	m_staticText_DCPDIR = new wxStaticText(this, wxID_ANY, wxT("DCP folder"), wxDefaultPosition, wxDefaultSize, 0);
 	m_staticText_DCPDIR->Wrap(-1);
 	fgSizer1->Add(m_staticText_DCPDIR, 0, wxALL, 5);
 
-
 	m_dirPicker2 = new wxDirPickerCtrl( this, wxID_ANY, wxEmptyString, wxT("Select a folder"), wxDefaultPosition, wxSize(500, -1), wxDIRP_DEFAULT_STYLE );
 	fgSizer1->Add( m_dirPicker2, 0, wxALL, 5 );
 
+	// Ajout du texte indicatif pour le volume
+	m_staticText_Volume = new wxStaticText(this, wxID_ANY, wxT("Volume (dB)"), wxDefaultPosition, wxDefaultSize, 0);
+	fgSizer1->Add(m_staticText_Volume, 0, wxALL, 5);
+
+	// Ajout du slider pour le volume (-6 dB à +6 dB)
+	m_sliderVolume = new wxSlider(this, wxID_ANY, 0, -6, 6, wxDefaultPosition, wxSize(500, -1), wxSL_HORIZONTAL | wxSL_LABELS);
+	fgSizer1->Add(m_sliderVolume, 0, wxALL, 5);
 
 	m_staticText2 = new wxStaticText( this, wxID_ANY, wxT("Audio device"), wxDefaultPosition, wxDefaultSize, 0 );
 	m_staticText2->Wrap( -1 );
@@ -108,7 +115,7 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_staticText_Command->Wrap(-1);
 	fgSizer1->Add(m_staticText_Command, 0, wxALL, 5);
 
-	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.6.2"), wxDefaultPosition, wxDefaultSize, 0);
+	m_About1 = new wxStaticText(this, wxID_ANY, wxT("Version 0.6.3"), wxDefaultPosition, wxDefaultSize, 0);
 	m_About1->Wrap(-1);
 	fgSizer1->Add(m_About1, 0, wxALL, 5);
 
@@ -119,8 +126,8 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 
 	this->SetSizer( fgSizer1 );
 	this->Layout();
-
 	this->Centre( wxBOTH );
+	this->Fit();
 
 	// Connect Events
 	this->Connect( wxEVT_INIT_DIALOG, wxInitDialogEventHandler( RunDlg::RunDcpPlayerDlgOnInitDialog ) );
@@ -138,6 +145,8 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_button_run->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_runOnButtonClick ), NULL, this );
 	m_button_help->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(RunDlg::m_button_helpOnButtonClick), NULL, this);
 	m_button_quit->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_quitOnButtonClick ), NULL, this );
+	m_sliderVolume->Connect(wxEVT_SLIDER, wxCommandEventHandler(RunDlg::m_slider_volume), NULL, this);
+
 }
 
 RunDlg::~RunDlg()
@@ -160,5 +169,14 @@ RunDlg::~RunDlg()
 	m_button_run->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_runOnButtonClick ), NULL, this );
 	m_button_help->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(RunDlg::m_button_helpOnButtonClick), NULL, this);
 	m_button_quit->Disconnect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( RunDlg::m_button_quitOnButtonClick ), NULL, this );
+	m_sliderVolume->Disconnect(wxEVT_SLIDER, wxCommandEventHandler(RunDlg::m_slider_volume), NULL, this);
+
 
 }
+
+
+//void RunDlg::OnVolumeSliderChanged(wxCommandEvent& event)
+//{
+//	int volume = m_sliderVolume->GetValue();
+//	wxLogMessage("Volume réglé à : %d dB", volume);
+//}

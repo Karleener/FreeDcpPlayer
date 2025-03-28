@@ -59,6 +59,8 @@ class Run : public RunDlg
 		void m_button_runOnButtonClick( wxCommandEvent& event );
 		void m_button_helpOnButtonClick(wxCommandEvent& event);
 		void m_button_quitOnButtonClick( wxCommandEvent& event );
+		void m_slider_volume(wxCommandEvent& event);
+
 	public:
 		/** Constructor */
 		Run( wxWindow* parent );

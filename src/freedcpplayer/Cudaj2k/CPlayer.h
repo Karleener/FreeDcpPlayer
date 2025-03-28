@@ -97,10 +97,12 @@ public :
 	int getTickCount();
 	int getTickFrequency();
 	double Duration(std::chrono::time_point<std::chrono::system_clock> start, std::chrono::time_point<std::chrono::system_clock> end);
+	float Convert24bto16b(uint8_t byte2, uint8_t byte1, uint8_t byte0);
+	float ApplyGain(float ech, float gain);
 	std::chrono::time_point<std::chrono::system_clock> MyGetCurrentTime();
 
 	bool SelectAudioDeviceInitAudio();
-
+	float AudioGainDB ;
 	const char* MyAudioDevice;
 	double tickf;
 

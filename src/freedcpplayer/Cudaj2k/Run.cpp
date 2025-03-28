@@ -232,6 +232,11 @@ void Run::m_checkBox_playOnCheckBox(wxCommandEvent& event)
 	UpdateCommand();
 }
 
+void Run::m_slider_volume(wxCommandEvent& event)
+{
+	UpdateCommand();
+ }
+
 void Run::m_button_runOnButtonClick( wxCommandEvent& event )
 {
 	if (!m_IsPlaying)
@@ -322,6 +327,7 @@ void Run::UpdateCommand()
 	int audio = m_choiceAudio->GetCurrentSelection();
 	int display = m_choiceDisplay->GetCurrentSelection();
 	int CplIndex = m_choiceCPL->GetCurrentSelection();
+	int AudioGain = m_sliderVolume->GetValue()+6; // -6dB is coded as 0 and +6dB is coded as 12 in order to avoid "-" in command list
 
 #if defined(WIN64) || defined(_WIN64)
 	arguments.push_back(InitialDir+"/RunDcpPlayer.exe");
@@ -335,6 +341,9 @@ void Run::UpdateCommand()
 	arguments.push_back(to_string(display));
 	arguments.push_back("-c");
 	arguments.push_back(to_string(CplIndex));
+	arguments.push_back("-l");
+	arguments.push_back(to_string(AudioGain));
+
 	if (!m_Back) arguments.push_back("-g");
 	if (m_ProgressBar) arguments.push_back("-i");
 	if (m_Output51) arguments.push_back("-o");

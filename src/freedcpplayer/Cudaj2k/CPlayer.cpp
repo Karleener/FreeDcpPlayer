@@ -19,7 +19,7 @@
  *****************************************************************************/
 
  /**
-  * @file CPlayer.cpp 0.6.2
+  * @file CPlayer.cpp 0.6.3
   * @screen reels using Nvidia nvjp2k library 
   */
 
@@ -90,6 +90,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	GlobalBufferOneFrame = NULL;
 	AudioForDevice = NULL;
 
+	AudioGainDB = pow(10.0f, Options.AudioGain / 10.0f);   // default 0 dB 
 
 	fs::path PathLog = full_path;
 	PathLog /= "freedcpplayer.log";
@@ -243,7 +244,7 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	if (!(ADesc.ChannelCount == 2 || ADesc.ChannelCount == 6)) 
 	{ 
 		if (Options.verbose_flag) 
-			fprintf(fp_log, "Audio is not 5.1 neither stereo \nYou audio file contains %d channels\n\n",ADesc.ChannelCount); 
+			fprintf(fp_log, "Audio is not 5.1 neither stereo \nYour audio file contains %d channels\n\n",ADesc.ChannelCount); 
 		//return RESULT_FAIL; 
 	}
 
@@ -1445,9 +1446,14 @@ int CPlayer::FromXchannelstoStereo(const unsigned char* GlobalBufferOneFrame, SS
 	if (AudioDeviceStereo == NULL) return -2;
 	if (NbSamples < 0) return -3;
 
+	// Paramètres de gain
+	const float centerGain = 0.7f;     // Gain du canal central
+	const float surroundGain = 0.5f;   // Gain des canaux surround
+	const float rightStereoGain = 1.0f;  // Gain stéréo droit
+	const float leftStereoGain = rightStereoGain;   // Gain stéréo gauche
+
 	SFiveDotOne Sample51;
 	float fechR, fechC, fechL, fechBR, fechBL; // discard LFE
-	int echR, echC, echL, echBR, echBL;
 	float fech;
 	unsigned int ch = ADesc.ChannelCount*3 ; // 24 bits
  	OneChannel oc;
@@ -1456,39 +1462,30 @@ int CPlayer::FromXchannelstoStereo(const unsigned char* GlobalBufferOneFrame, SS
 	unsigned int p = 0;
 	for (unsigned int j = 0; j < NbSamples; j++)
 	{
-		//int i = (j * BytePerSampleOutput * NbChannelOut); //  stereo output
 		p = j * ch;
 		ptr = (uchar *)GlobalBufferOneFrame + p; // L
-
-		echL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechL = (float)(echL) / float(16777216.0);
-		fechL = (fechL * float(0x7fff));
-
+		fechL = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
 		ptr += 3; //R
-		echR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechR = (float)(echR) / float(16777216.0);
-		fechR = (fechR * float(0x7fff));
-
+		fechR = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
 		ptr += 3; //C
-		echC = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechC = (float)(echC) / float(16777216.0);
-		fechC = (fechC * float(0x7fff));// *0.5F;
-
-		ptr += 3; // LFE
+		fechC = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		ptr += 3; // LFE not used
 		ptr += 3; // BL (Ls)
-		echBL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechBL = (float)(echBL) / float(16777216.0);
-		fechBL = (fechBL * float(0x7fff));
-
+		fechBL = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
 		ptr += 3; // BR (Rs)
-		echBR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechBR = (float)(echBR) / float(16777216.0);
-		fechBR = (fechBR * float(0x7fff));
+		fechBR = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
 
-		fech = (fechR + 0.5*fechC + 0.5*fechBR);
-		AudioDeviceStereo[j].R = short(fech);
-		fech = (fechL + 0.5*fechC + 0.5*fechBL);
-		AudioDeviceStereo[j].L = short(fech);
+		fech = (fechR * rightStereoGain + fechC * centerGain + fechBR * surroundGain) * AudioGainDB;
+		// Limitation des valeurs
+		if (fech > 32767.0f) fech = 32767.0f;
+		if (fech < -32768.0f) fech = -32768.0f;
+		// Conversion en 16 bits
+		AudioDeviceStereo[j].R = static_cast<short>(fech);
+		// Mixage et gain stéréo gauche
+		fech = (fechL * leftStereoGain + fechC * centerGain + fechBL * surroundGain) * AudioGainDB;
+		if (fech > 32767.0f) fech = 32767.0f;
+		if (fech < -32768.0f) fech = -32768.0f;
+		AudioDeviceStereo[j].L = static_cast<short>(fech);
 	}
 	return 0;
 }
@@ -1500,8 +1497,6 @@ int CPlayer::FromXchannelsto51(const unsigned char* GlobalBufferOneFrame, SFiveD
 	if (NbSamples < 0) return -3;
 
 	SFiveDotOne Sample51;
-	float fechR, fechC, fechL, fechBR, fechBL, fechLFE;
-	int echR, echC, echL, echBR, echBL,echLFE;
 	float fech;
 	unsigned int ch = ADesc.ChannelCount * 3; // 24 bits
 	OneChannel oc;
@@ -1510,97 +1505,97 @@ int CPlayer::FromXchannelsto51(const unsigned char* GlobalBufferOneFrame, SFiveD
 	unsigned int p = 0;
 	for (unsigned int j = 0; j < NbSamples; j++)
 	{
-		//int i = (j * BytePerSampleOutput * NbChannelOut); //  stereo output
+
 		p = j * ch;
 		ptr = (uchar*)GlobalBufferOneFrame + p; // L
 
-		echL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechL = (float)(echL) / float(16777216.0);
-		fechL = (fechL * float(0x7fff));
-		AudioDevice[j].L = short(fechL);
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].L = short(fech);
 
 		ptr += 3; //R
-		echR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechR = (float)(echR) / float(16777216.0);
-		fechR = (fechR * float(0x7fff));
-		AudioDevice[j].R= short(fechR);
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].R= short(fech);
 
 		ptr += 3; //C
-		echC = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechC = (float)(echC) / float(16777216.0);
-		fechC = (fechC * float(0x7fff));// *0.5F;
-		AudioDevice[j].C = short(fechC);
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].C = short(fech);
 
 		ptr += 3; // LFE
-		echLFE = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechLFE = (float)(echLFE) / float(16777216.0);
-		fechLFE = (fechLFE * float(0x7fff));
-		AudioDevice[j].LFE = short(fechLFE);
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].LFE = short(fech);
 
 		ptr += 3; // BL (Ls)
-		echBL = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechBL = (float)(echBL) / float(16777216.0);
-		fechBL = (fechBL * float(0x7fff));
-		AudioDevice[j].BL = short(fechBL);
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].BL = short(fech);
 
 		ptr += 3; // BR (Rs)
-		echBR = ((ptr[2] << 16 | ptr[1] << 8 | ptr[0]) << 8) >> 8;
-		fechBR = (float)(echBR) / float(16777216.0);
-		fechBR = (fechBR * float(0x7fff));
-		AudioDevice[j].BR = short(fechBR);
-
-
+		fech = Convert24bto16b(ptr[2], ptr[1], ptr[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].BR = short(fech);
 	}
 	return 0;
 }
 
 
 
-
-
 int CPlayer::From51toStereo(const SFiveDotOne* GlobalBufferOneFrame, SStereo* AudioDeviceStereo, int NbSamples)
 {
+
+	const float centerGain = 0.5f;     // Gain du canal central
+	const float surroundGain = 0.5f;   // Gain des canaux surround
+	const float rightStereoGain = 1.0f;  // Gain stéréo droit
+	const float leftStereoGain = rightStereoGain;   // Gain stéréo gauche
+
 	if (GlobalBufferOneFrame == NULL) return -1;
 	if (AudioDeviceStereo == NULL) return -2;
 	if (NbSamples < 0) return -3;
 
-	SFiveDotOne Sample51;
-	float fechR, fechC, fechL, fechBR, fechBL; // discard LFE
-	int echR, echC, echL, echBR, echBL;
-	float fech;
-
 	for (int j = 0; j < NbSamples; j++)
 	{
-		//int i = (j * BytePerSampleOutput * NbChannelOut); //  stereo output
-		Sample51 = GlobalBufferOneFrame[j];
-		echR = ((Sample51.R[2] << 16 | Sample51.R[1] << 8 | Sample51.R[0]) << 8) >> 8;
-		fechR = (float)(echR) / float(16777216.0);
-		fechR = (fechR * float(0x7fff));
+		const SFiveDotOne& Sample51 = GlobalBufferOneFrame[j];
+		float fechR = Convert24bto16b(Sample51.R[2], Sample51.R[1], Sample51.R[0]);
+		float fechC = Convert24bto16b(Sample51.C[2], Sample51.C[1], Sample51.C[0]);
+		float fechBR = Convert24bto16b(Sample51.BR[2], Sample51.BR[1], Sample51.BR[0]);
+		float fech = (fechR * rightStereoGain + fechC*centerGain + fechBR*surroundGain)* AudioGainDB;
+		if (fech > 32767.0f) fech = 32767.0f;
+		if (fech < -32768.0f) fech = -32768.0f;
 
-		echC = ((Sample51.C[2] << 16 | Sample51.C[1] << 8 | Sample51.C[0]) << 8) >> 8;
-		fechC = (float)(echC) / float(16777216.0);
-		fechC = (fechC * float(0x7fff)) * 0.5F;
+		AudioDeviceStereo[j].R = static_cast<short>(fech);
 
-		echBR = ((Sample51.BR[2] << 16 | Sample51.BR[1] << 8 | Sample51.BR[0]) << 8) >> 8;
-		fechBR = (float)(echBR) / float(16777216.0);
-		fechBR = (fechBR * float(0x7fff));
+		float fechL = Convert24bto16b(Sample51.L[2], Sample51.L[1], Sample51.L[0]);
+		float fechBL = Convert24bto16b(Sample51.BL[2], Sample51.BL[1], Sample51.BL[0]);
+		fech = (fechL* leftStereoGain+ fechC*centerGain + fechBL*surroundGain)* AudioGainDB;
+		if (fech > 32767.0f) fech = 32767.0f;
+		if (fech < -32768.0f) fech = -32768.0f;
 
-		fech = (fechR + fechC + fechBR) / 2.5f;
-
-		AudioDeviceStereo[j].R = short(fech);
-		echL = ((Sample51.L[2] << 16 | Sample51.L[1] << 8 | Sample51.L[0]) << 8) >> 8;
-		fechL = (float)(echL) / float(16777216.0);
-		fechL = (fechL * float(0x7fff));
-
-		echBL = ((Sample51.BL[2] << 16 | Sample51.BL[1] << 8 | Sample51.BL[0]) << 8) >> 8;
-		fechBL = (float)(echBL) / float(16777216.0);
-		fechBL = (fechBL * float(0x7fff));
-
-		fech = (fechL + fechC + fechBL) / 2.5f;
-
-		AudioDeviceStereo[j].L = short(fech);
+		AudioDeviceStereo[j].L = static_cast<short>(fech);
 	}
 	return 0;
+}
+
+inline float CPlayer::Convert24bto16b(uint8_t byte2, uint8_t byte1, uint8_t byte0)
+{
+	// Reconstruction de l'échantillon 24 bits en entier signé
+	int32_t sample = (byte2 << 16) | (byte1 << 8) | byte0;
+	// Extension du signe si le bit de poids fort (bit 23) est à 1 (valeurs négatives en complément à deux)
+	if (sample & 0x800000) sample |= 0xFF000000;  // Remplir les bits de poids fort pour conserver le signe
+	float fSample = static_cast<float>(sample) / 16777216.0f;
+	// Conversion en amplitude 16 bits (-32767 à 32767)
+	fSample *= static_cast<float>(0x7FFF);
+	return fSample;
+}
+
+inline float CPlayer::ApplyGain(float fech, float gain)
+{
+	fech = (fech)*gain;
+	if (fech > 32767.0f) fech = 32767.0f;
+	if (fech < -32768.0f) fech = -32768.0f;
+	return fech;
 }
 
 int CPlayer::From51to51_16B(const SFiveDotOne* GlobalBufferOneFrame, SFiveDotOne16B* AudioDevice, int NbSamples)
@@ -1610,41 +1605,34 @@ int CPlayer::From51to51_16B(const SFiveDotOne* GlobalBufferOneFrame, SFiveDotOne
 	if (NbSamples < 0) return -3;
 
 	SFiveDotOne Sample51;
-	float fechR, fechC, fechL, fechBR, fechBL,fechLFE; // discard LFE
-	int echR, echC, echL, echBR, echBL,echLFE;
+	float fech;
 
 	for (int j = 0; j < NbSamples; j++)
 	{
 		Sample51 = GlobalBufferOneFrame[j];
-		echL = ((Sample51.L[2] << 16 | Sample51.L[1] << 8 | Sample51.L[0]) << 8) >> 8;
-		fechL = (float)(echL) / float(16777216.0);
-		fechL = (fechL * float(0x7fff));
-		AudioDevice[j].L = short(fechL);
+		fech= Convert24bto16b(Sample51.L[2], Sample51.L[1], Sample51.L[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].L = short(fech);
 
-		echR = ((Sample51.R[2] << 16 | Sample51.R[1] << 8 | Sample51.R[0]) << 8) >> 8;
-		fechR = (float)(echR) / float(16777216.0);
-		fechR = (fechR * float(0x7fff));
-		AudioDevice[j].R = short(fechR);
+		fech = Convert24bto16b(Sample51.R[2], Sample51.R[1], Sample51.R[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].R = short(fech);
 
-		echC = ((Sample51.C[2] << 16 | Sample51.C[1] << 8 | Sample51.C[0]) << 8) >> 8;
-		fechC = (float)(echC) / float(16777216.0);
-		fechC = (fechC * float(0x7fff));
-		AudioDevice[j].C = short(fechC);
+		fech = Convert24bto16b(Sample51.C[2], Sample51.C[1], Sample51.C[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].C = short(fech);
 
-		echLFE = ((Sample51.LFE[2] << 16 | Sample51.LFE[1] << 8 | Sample51.LFE[0]) << 8) >> 8;
-		fechLFE = (float)(echLFE) / float(16777216.0);
-		fechLFE = (fechLFE * float(0x7fff));
-		AudioDevice[j].LFE = short(fechLFE);
+		fech = Convert24bto16b(Sample51.LFE[2], Sample51.LFE[1], Sample51.LFE[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].LFE = short(fech);
 
-		echBR = ((Sample51.BR[2] << 16 | Sample51.BR[1] << 8 | Sample51.BR[0]) << 8) >> 8;
-		fechBR = (float)(echBR) / float(16777216.0);
-		fechBR = (fechBR * float(0x7fff));
-		AudioDevice[j].BR = short(fechBR);
+		fech = Convert24bto16b(Sample51.BR[2], Sample51.BR[1], Sample51.BR[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].BR = short(fech);
 
-		echBL = ((Sample51.BL[2] << 16 | Sample51.BL[1] << 8 | Sample51.BL[0]) << 8) >> 8;
-		fechBL = (float)(echBL) / float(16777216.0);
-		fechBL = (fechBL * float(0x7fff));
-		AudioDevice[j].BL = short(fechBL);
+		fech = Convert24bto16b(Sample51.BL[2], Sample51.BL[1], Sample51.BL[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDevice[j].BL = short(fech);
 
 	}
 	return 0;
@@ -1663,18 +1651,13 @@ int CPlayer::FromStereotoStereo(const SStereo24b* GlobalBufferOneFrame, SStereo*
 	float fech;
 	for (int j = 0; j < NbSamples; j++)
 	{
-
 		Sample = GlobalBufferOneFrame[j];
-		echR = ((Sample.R[2] << 16 | Sample.R[1] << 8 | Sample.R[0]) << 8) >> 8;
-		fechR = (float)(echR) / float(16777216.0);
-		fechR = (fechR * float(0x7fff));
-		fech = (fechR);
-		AudioDeviceStereo[j].R = short(fech);
-		echL = ((Sample.L[2] << 16 | Sample.L[1] << 8 | Sample.L[0]) << 8) >> 8;
-		fechL = (float)(echL) / float(16777216.0);
-		fechL = (fechL * float(0x7fff));
-		fech = (fechL);
+		fech = Convert24bto16b(Sample.L[2], Sample.L[1], Sample.L[0]);
+		fech = ApplyGain(fech, AudioGainDB);
 		AudioDeviceStereo[j].L = short(fech);
+		fech = Convert24bto16b(Sample.R[2], Sample.R[1], Sample.R[0]);
+		fech = ApplyGain(fech, AudioGainDB);
+		AudioDeviceStereo[j].R = short(fech);
 	}
 	return 0;
 }

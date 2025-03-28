@@ -37,6 +37,7 @@
 #include <wx/icon.h>
 #include <wx/sizer.h>
 #include <wx/dialog.h>
+#include <wx/slider.h>
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -70,6 +71,8 @@ class RunDlg : public wxDialog
 		wxStaticText* m_staticText_Command;
 		wxStaticText* m_About1;
 		wxStaticText* m_About2;
+		wxStaticText* m_staticText_Volume;
+		wxSlider* m_sliderVolume;
 
 
 		// Virtual event handlers, override them in your derived class
@@ -90,6 +93,8 @@ class RunDlg : public wxDialog
 		virtual void m_button_runOnButtonClick( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_button_helpOnButtonClick(wxCommandEvent& event) { event.Skip(); }
 		virtual void m_button_quitOnButtonClick( wxCommandEvent& event ) { event.Skip(); }
+
+		virtual void m_slider_volume(wxCommandEvent& event) { event.Skip(); }
 
 
 	public:
