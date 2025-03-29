@@ -128,7 +128,7 @@ Options:\n\
   -o				- Activate 5.1 sound output if input is 5.1\n\
   -p				- Play direclty without pause\n\
   -h | -help        - Show help\n\
-  -i				- Display progress bar and frame number\n\
+  -l				- Audio gain from 0 to 12 coding -6dB to 6dB, default 6=0dB\n\
   -j				- Display fps\n\
   -s				- Play half resolution\n\
   -v                - Verbose, prints informative messages to stderr\n\
@@ -150,7 +150,7 @@ Options:\n\
 		This software is provided 'as-is', without any express or implied\n\
 		warranty.In no event will the authors be held liable for any damages\n\
 		arising from the use of this software.\n\
-		VERSION 0.6.3\n\
+		VERSION 0.6.3.2\n\
 		copyright (c) <2006 - 2021> Johel Miteran - Karleener\n\n\
 ");
 }
@@ -200,7 +200,7 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 	}
 #endif
 	if (Options.help_flag) usage();
-	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.3 \n");
+	if (Options.verbose_flag) fprintf(fp_log, "FreeDcpPlayer version 0.6.3.2 \n");
 
 	if (Options.error_flag)
 	{

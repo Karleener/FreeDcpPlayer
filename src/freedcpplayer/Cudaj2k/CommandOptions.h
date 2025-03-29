@@ -196,6 +196,7 @@ public:
 				case 'l':
 					TEST_EXTRA_ARG(i, 'l');
 					AudioGain =(float) Kumu::xabs(strtol(argv[i], 0, 10)) -6.0F; // gain from -6dB to 6dB
+					if (AudioGain > 6.0F) AudioGain = 6.0F;
 					break;
 				case 'm': read_hmac = true; break;
 				case 'o': Output51 = true; break; // activate 5.1 output
