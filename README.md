@@ -146,7 +146,12 @@ Minor modifications 03/11/2022 - version 0.6.1
 - small speed improvement, allowing full resolution 4K (at least for DCI Scope) decoding and screening
 - add command line support. 
 For example 
-freedcpplayer "c:\mydcpdir\Myshortfilm_SHR-1-25_S_Fr-EN_FR-NR_51_2K_karleener_20171009_SMPTE_OV" -a 3 -d 1 -i -j
+	freedcpplayer "c:\mydcpdir\Myshortfilm_SHR-1-25_S_Fr-EN_FR-NR_51_2K_karleener_20171009_SMPTE_OV" -a 3 -d 1 -i -j -l 6
+	Note, in order to avoid negative value in command line :
+			-l 6 option encode 0dB audio gain.
+			-l 0 encode -6dB gain and
+			-6 12 encode 6dB gain
+  
 type freedcpplayer -h for help. If you run freedcpplayer without option, the GUI will be used.
 The command option allows screening DCPs in a batch file, optionnally scheduled by the OS.
 
