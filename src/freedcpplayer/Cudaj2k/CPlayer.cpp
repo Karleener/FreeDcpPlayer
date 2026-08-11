@@ -358,6 +358,21 @@ bool CPlayer::PrepareXYZ2RGBLUT()
 	return true;
 }
 
+// Find a child element by local name, ignoring any namespace prefix.
+// pugixml matches tag names literally, so "dcst:SubtitleReel" and
+// "SubtitleReel" would otherwise be different names; SMPTE 428-7 files
+// legitimately use either form. Returns an empty node if not found.
+static pugi::xml_node child_local(pugi::xml_node parent, const char* local)
+{
+	for (pugi::xml_node n = parent.first_child(); n; n = n.next_sibling())
+	{
+		const char* name = n.name();
+		const char* colon = strchr(name, ':');
+		if (strcmp(colon ? colon + 1 : name, local) == 0) return n;
+	}
+	return pugi::xml_node();
+}
+
 Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReaderFactory, string inputFile, fs::path full_path)
 {
 	AESDecContext* Context = 0;
@@ -433,11 +448,15 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 		}
 		if (res)
 		{
-			string sTimeCodeRate = doc.child("dcst:SubtitleReel").child("dcst:TimeCodeRate").first_child().value();
+			// Look up elements by local name so both prefixed ("dcst:SubtitleReel")
+			// and default-namespace ("SubtitleReel") SMPTE 428-7 files parse.
+			pugi::xml_node SubReel = child_local(doc, "SubtitleReel");
+			string sTimeCodeRate = child_local(SubReel, "TimeCodeRate").first_child().value();
 			if (sTimeCodeRate != "") TimeCodeRate = stoi(sTimeCodeRate.c_str());
-			string StartTime= doc.child("dcst:SubtitleReel").child("dcst:StartTime").first_child().value();
-			if (StartTime!="") StartFrameSub= DecodeTime(StartTime, frame_rate, true);
-			pugi::xml_node Subtitles = doc.child("dcst:SubtitleReel").child("dcst:SubtitleList").child("dcst:Font");
+			string StartTime = child_local(SubReel, "StartTime").first_child().value();
+			if (StartTime != "") StartFrameSub = DecodeTime(StartTime, frame_rate, true);
+			pugi::xml_node Subtitles = child_local(child_local(SubReel, "SubtitleList"), "Font");
+
 			for (pugi::xml_node Subtitle = Subtitles.first_child(); Subtitle; Subtitle = Subtitle.next_sibling())
 			{
 				//std::cout << "asset:";
