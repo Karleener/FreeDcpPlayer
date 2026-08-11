@@ -124,11 +124,14 @@ Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CRe
 	{
 		if (Options.verbose_flag) fprintf(fp_log, "\nError in DCP path"); return RESULT_FAIL;
 	}
-	MxfFiles.resize(4);
+
+	// Guard per-reel asset pointers: SubOk/VideoOk/SoundOk are DCP-global,
+	// so a reel may lack an asset even when the flag is set.
+	MxfFiles.assign(4, "");
 	ptrReel = ptrReel_i;
-	if (DcpParse.VideoOk && ptrReel!=NULL) MxfFiles[0] = MyPath + '/' + ptrReel->ptrMainPicture->sPath;
-	if (DcpParse.SoundOk && ptrReel != NULL) MxfFiles[1] = MyPath + '/' + ptrReel->ptrMainSound->sPath;
-	if (DcpParse.SubOk && ptrReel != NULL)
+	if (DcpParse.VideoOk && ptrReel != NULL && ptrReel->ptrMainPicture != NULL) MxfFiles[0] = MyPath + '/' + ptrReel->ptrMainPicture->sPath;
+	if (DcpParse.SoundOk && ptrReel != NULL && ptrReel->ptrMainSound != NULL) MxfFiles[1] = MyPath + '/' + ptrReel->ptrMainSound->sPath;
+	if (DcpParse.SubOk && ptrReel != NULL && ptrReel->ptrSubtitle != NULL)
 	{
 		MxfFiles[2] = MyPath + '/' + ptrReel->ptrSubtitle->sPath;
 		MxfFiles[3] = MyPath + '/' + ptrReel->ptrSubtitle->sFont;
