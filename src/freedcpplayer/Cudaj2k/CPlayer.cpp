@@ -794,6 +794,10 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	Mem.base = win_h - (win_h - (height) / scalef) / 2;
 	Mem.Scalef = scalef;
 	Mem.FrameCount = frame_count;
+
+	Mem.FrameRate = (ptrReel && ptrReel->ptrMainPicture) ? ptrReel->ptrMainPicture->dFrameRate : 24.0;
+	Mem.CounterMode = Options.CounterMode;
+
 	Mem.IncrustPosition = Options.IncrustPosition;
 	Mem.IncrustFps = Options.IncrustFps;
 	Mem.DisplayFps = 0.0;
@@ -1179,7 +1183,31 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 		SDL_Rect R2{ PosFen, Mem.win_h - 30,  Mem.win_w-PosFen, 5 };
 		SDL_RenderFillRect(Renderer, &R2);
 		char buf[512];
-		sprintf(buf,"Frame %d", i);
+
+		if (Mem.CounterMode != COUNTER_NONE)
+		{
+			if (Mem.CounterMode == COUNTER_TIMECODE)
+			{
+				// DCI edit rates are integer, so plain division is exact (no drop-frame).
+				int fps = (int)(Mem.FrameRate + 0.5);
+				if (fps <= 0) fps = 24;
+				Uint32 ff = i % fps;
+				Uint32 tsec = i / fps;
+				sprintf(buf, "%02u:%02u:%02u:%02u", tsec / 3600, (tsec / 60) % 60, tsec % 60, ff);
+			}
+			else
+				sprintf(buf, "Frame %d", i);
+
+			bool bget = get_text_and_rect(Renderer, 0, 0, buf, Font, &TextTexture, &MessageRect);
+			if (bget)
+			{
+				MessageRect.x = 10;
+				MessageRect.y = 10;
+				SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
+				SDL_DestroyTexture(TextTexture);
+			}
+		}
+
 		bool bget = get_text_and_rect(Renderer, 0, 0, buf, Font, &TextTexture, &MessageRect);
 		if (bget)
 		{
@@ -1358,6 +1386,12 @@ void CPlayer::StateMachine()
 		{
 			Mem.IncrustFps= !Mem.IncrustFps;
 			Options.IncrustFps = !Options.IncrustFps;
+		}
+
+		if (event.key.keysym.sym == SDLK_t)
+		{
+			Mem.CounterMode = (Mem.CounterMode + 1) % 3;
+			Options.CounterMode = Mem.CounterMode;
 		}
 
 		if (loop) // not paused state
@@ -2392,5 +2426,3 @@ void CPlayer::Swap(SDL_Surface* &out1, SDL_Surface* &out2)
 	out1 = out2;
 	out2 = temp;
 }
-
- 

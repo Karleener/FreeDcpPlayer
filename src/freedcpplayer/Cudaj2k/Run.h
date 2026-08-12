@@ -51,6 +51,7 @@ class Run : public RunDlg
 
 		void m_checkBox_full_screenOnCheckBox( wxCommandEvent& event );
 		void m_checkBox_ProgressOnCheckBox( wxCommandEvent& event );
+		void m_choiceCounterOnChoice(wxCommandEvent& event);
 		void m_checkBox_logOnCheckBox( wxCommandEvent& event );
 		void m_checkBox_51OnCheckBox( wxCommandEvent& event );
 		void m_checkBox_HalfOnCheckBox(wxCommandEvent& event);
@@ -83,6 +84,7 @@ class Run : public RunDlg
 		bool m_Output51;
 		bool m_HalfResolution;
 		bool m_Play;
+		int m_CounterMode;
 
 		bool m_IsPlaying;
 

@@ -82,6 +82,12 @@ enum MajorMode_t
 	MMT_GOP_START,
 };
 
+enum CounterMode_t
+{
+	COUNTER_NONE = 0,
+	COUNTER_FRAMES = 1,
+	COUNTER_TIMECODE = 2,
+};
 
 struct SMemoire
 {
@@ -105,7 +111,8 @@ struct SMemoire
 	bool IncrustPosition;
 	float DisplayFps;
 	bool IncrustFps;
-
+	double FrameRate;
+	int CounterMode;
 };
 struct LineSub
 {

@@ -131,6 +131,7 @@ Options:\n\
   -l				- Audio gain from 0 to 12 coding -6dB to 6dB, default 6=0dB\n\
   -j				- Display fps\n\
   -s				- Play half resolution\n\
+  -t <mode>\t\t- Counter display on progress bar: 0=none, 1=frame number, 2=timecode HH:MM:SS:FF, default 1\n\
   -v                - Verbose, prints informative messages to stderr\n\
 \n\
   NOTES: o There is no option grouping, all options must be distinct arguments.\n\
@@ -140,7 +141,8 @@ Options:\n\
 		 o Use double mouse left click in the picture as an horizontal slider to move forward or backward\n\
 		 o Press  ESC key to end the program\n\
 		 o Press space bar for play/pause\n\n\
-		 o Example  : FreeDcpPlayer \"c:/mydcp\" -a 0 -d 0\n\
+		 \t\t o Press t key to cycle the counter display (none / frame number / timecode)\n\
+		o Example  : FreeDcpPlayer \"c:/mydcp\" -a 0 -d 0\n\
 		 o This version is restricted to Uncrypted 5.1 or stereo 2K or 4K DCP\n\
 		 o A Cuda based GPU with at least 6GB is required\n\n\
 		Portions of this software are copyright (c) <2006-2021> The FreeType\n\

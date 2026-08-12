@@ -82,6 +82,17 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_checkBox_Progress = new wxCheckBox( this, wxID_ANY, wxT("Progress bar"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer1->Add( m_checkBox_Progress, 0, wxALL, 5 );
 
+	m_staticText_Counter = new wxStaticText(this, wxID_ANY, wxT("Counter display (on progress bar)"), wxDefaultPosition, wxDefaultSize, 0);
+	fgSizer1->Add(m_staticText_Counter, 0, wxALL, 5);
+
+	wxArrayString m_choiceCounterChoices;
+	m_choiceCounterChoices.Add(wxT("None"));
+	m_choiceCounterChoices.Add(wxT("Frame number"));
+	m_choiceCounterChoices.Add(wxT("Timecode (HH:MM:SS:FF)"));
+	m_choiceCounter = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(500, -1), m_choiceCounterChoices, 0);
+	m_choiceCounter->SetSelection(1);
+	fgSizer1->Add(m_choiceCounter, 0, wxALL, 5);
+
 	m_checkBox_log = new wxCheckBox( this, wxID_ANY, wxT("Record log file"), wxDefaultPosition, wxDefaultSize, 0 );
 	fgSizer1->Add( m_checkBox_log, 0, wxALL, 5 );
 
@@ -137,6 +148,7 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_choiceCPL->Connect( wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler( RunDlg::m_choiceCPLOnChoice ), NULL, this );
 	m_checkBox_full_screen->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_full_screenOnCheckBox ), NULL, this );
 	m_checkBox_Progress->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_ProgressOnCheckBox ), NULL, this );
+	m_choiceCounter->Connect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(RunDlg::m_choiceCounterOnChoice), NULL, this);
 	m_checkBox_log->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_logOnCheckBox ), NULL, this );
 	m_checkBox_51->Connect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_51OnCheckBox ), NULL, this );
 	m_checkBox_half->Connect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_halfOnCheckBox), NULL, this);
@@ -161,6 +173,7 @@ RunDlg::~RunDlg()
 
 	m_checkBox_full_screen->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_full_screenOnCheckBox ), NULL, this );
 	m_checkBox_Progress->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_ProgressOnCheckBox ), NULL, this );
+	m_choiceCounter->Disconnect(wxEVT_COMMAND_CHOICE_SELECTED, wxCommandEventHandler(RunDlg::m_choiceCounterOnChoice), NULL, this);
 	m_checkBox_log->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_logOnCheckBox ), NULL, this );
 	m_checkBox_51->Disconnect( wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler( RunDlg::m_checkBox_51OnCheckBox ), NULL, this );
 	m_checkBox_half->Disconnect(wxEVT_COMMAND_CHECKBOX_CLICKED, wxCommandEventHandler(RunDlg::m_checkBox_halfOnCheckBox), NULL, this);

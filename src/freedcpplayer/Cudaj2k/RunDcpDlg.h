@@ -60,6 +60,8 @@ class RunDlg : public wxDialog
 		wxChoice* m_choiceCPL;
 		wxCheckBox* m_checkBox_full_screen;
 		wxCheckBox* m_checkBox_Progress;
+		wxStaticText* m_staticText_Counter;
+		wxChoice* m_choiceCounter;
 		wxCheckBox* m_checkBox_log;
 		wxCheckBox* m_checkBox_51;
 		wxCheckBox* m_checkBox_half;
@@ -85,6 +87,7 @@ class RunDlg : public wxDialog
 
 		virtual void m_checkBox_full_screenOnCheckBox( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_checkBox_ProgressOnCheckBox( wxCommandEvent& event ) { event.Skip(); }
+		virtual void m_choiceCounterOnChoice(wxCommandEvent& event) { event.Skip(); }
 		virtual void m_checkBox_logOnCheckBox( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_checkBox_51OnCheckBox( wxCommandEvent& event ) { event.Skip(); }
 		virtual void m_checkBox_halfOnCheckBox(wxCommandEvent& event) { event.Skip(); }
