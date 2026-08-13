@@ -87,6 +87,7 @@ enum CounterMode_t
 	COUNTER_NONE = 0,
 	COUNTER_FRAMES = 1,
 	COUNTER_TIMECODE = 2,
+	COUNTER_TIMECODE_REMAINING = 3,
 };
 
 struct SMemoire

@@ -89,6 +89,7 @@ RunDlg::RunDlg( wxWindow* parent, wxWindowID id, const wxString& title, const wx
 	m_choiceCounterChoices.Add(wxT("None"));
 	m_choiceCounterChoices.Add(wxT("Frame number"));
 	m_choiceCounterChoices.Add(wxT("Timecode (HH:MM:SS:FF)"));
+	m_choiceCounterChoices.Add(wxT("Timecode remaining (HH:MM:SS:FF)"));
 	m_choiceCounter = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(500, -1), m_choiceCounterChoices, 0);
 	m_choiceCounter->SetSelection(1);
 	fgSizer1->Add(m_choiceCounter, 0, wxALL, 5);

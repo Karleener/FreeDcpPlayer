@@ -1186,14 +1186,21 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 
 		if (Mem.CounterMode != COUNTER_NONE)
 		{
-			if (Mem.CounterMode == COUNTER_TIMECODE)
+			if (Mem.CounterMode == COUNTER_TIMECODE || Mem.CounterMode == COUNTER_TIMECODE_REMAINING)
 			{
 				// DCI edit rates are integer, so plain division is exact (no drop-frame).
 				int fps = (int)(Mem.FrameRate + 0.5);
 				if (fps <= 0) fps = 24;
-				Uint32 ff = i % fps;
-				Uint32 tsec = i / fps;
-				sprintf(buf, "%02u:%02u:%02u:%02u", tsec / 3600, (tsec / 60) % 60, tsec % 60, ff);
+				Uint32 n = i;
+				const char* sign = "";
+				if (Mem.CounterMode == COUNTER_TIMECODE_REMAINING)
+				{
+					n = (Mem.FrameCount > i) ? Mem.FrameCount - i : 0;
+					sign = "-";
+				}
+				Uint32 ff = n % fps;
+				Uint32 tsec = n / fps;
+				sprintf(buf, "%s%02u:%02u:%02u:%02u", sign, tsec / 3600, (tsec / 60) % 60, tsec % 60, ff);
 			}
 			else
 				sprintf(buf, "Frame %d", i);
@@ -1390,7 +1397,7 @@ void CPlayer::StateMachine()
 
 		if (event.key.keysym.sym == SDLK_t)
 		{
-			Mem.CounterMode = (Mem.CounterMode + 1) % 3;
+			Mem.CounterMode = (Mem.CounterMode + 1) % 4;
 			Options.CounterMode = Mem.CounterMode;
 		}
 

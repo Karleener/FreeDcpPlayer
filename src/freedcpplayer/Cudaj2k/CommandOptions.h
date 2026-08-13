@@ -209,7 +209,7 @@ public:
 				case 't':
 					TEST_EXTRA_ARG(i, 't');
 					CounterMode = Kumu::xabs(strtol(argv[i], 0, 10));
-					if (CounterMode > COUNTER_TIMECODE) CounterMode = COUNTER_TIMECODE;
+					if (CounterMode > COUNTER_TIMECODE_REMAINING) CounterMode = COUNTER_TIMECODE_REMAINING;
 				break;
 
 				case 'V': version_flag = true; break;

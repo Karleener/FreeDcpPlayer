@@ -34,7 +34,7 @@ The wxWidgets based interface allows to launch the main program which is Windows
  - toggle progress bar = i
  - Press "j" to enable or disable current fps information (from the image processing time).
  - User can also double-click on the picture  : the horizontal position of the click give the start position of the lecture.
- - Press "t" to cycle the counter display on the progress bar (none / frame number / timecode)
+ - Press "t" to cycle the counter display on the progress bar (none / frame number / timecode elapsed / timecode remaining)
 
 ## How to use
 

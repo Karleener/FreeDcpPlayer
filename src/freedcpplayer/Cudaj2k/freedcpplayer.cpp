@@ -131,7 +131,7 @@ Options:\n\
   -l				- Audio gain from 0 to 12 coding -6dB to 6dB, default 6=0dB\n\
   -j				- Display fps\n\
   -s				- Play half resolution\n\
-  -t <mode>\t\t- Counter display on progress bar: 0=none, 1=frame number, 2=timecode HH:MM:SS:FF, default 1\n\
+  -t <mode>\t\t- Counter display on progress bar: 0=none, 1=frame number, 2=timecode HH:MM:SS:FF, 3=remaining timecode, default 1\n\
   -v                - Verbose, prints informative messages to stderr\n\
 \n\
   NOTES: o There is no option grouping, all options must be distinct arguments.\n\

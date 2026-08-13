@@ -122,7 +122,7 @@ void Run::RunDcpPlayerDlgOnInitDialog( wxInitDialogEvent& event )
 		if (line == "0") m_Play = false; else m_Play = true;
 		//_chdir(ChoosenDir.c_str());
 		if (getline(read, line)) m_CounterMode = atoi(line.c_str()); // absent in old config.txt keeps default
-		if (m_CounterMode < COUNTER_NONE || m_CounterMode > COUNTER_TIMECODE) m_CounterMode = COUNTER_FRAMES;
+		if (m_CounterMode < COUNTER_NONE || m_CounterMode > COUNTER_TIMECODE_REMAINING) m_CounterMode = COUNTER_FRAMES;
 	}
 
 	else
