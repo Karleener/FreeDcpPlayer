@@ -53,7 +53,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 	Derive = 0.0;
 	HaveSub = false;
 	Af1 = Af2 = Af3 = Af4 = Af5 = Af6 = Af7 = Af8 =AfSub  = NULL;
-	Font = Font32 = Font64 = NULL;
+	Font = Font32 = Font64 = Font16 = NULL;
 	BlackBackground = Options.BlackBackground;
 	WaitLastStop = true;
 	FontSize = 64;
@@ -105,7 +105,7 @@ CPlayer::CPlayer(CommandOptions& Options_i, const Kumu::IFileReaderFactory& file
 Result_t CPlayer::InitialisationReaders(CDcpParse &DcpParse, bool FirstTime, CReel *ptrReel_i)
 {
 	DecodeLevel = 0;
-	Font = Font32 = Font64 =  NULL;
+	Font = Font32 = Font64 = Font16 = NULL;
 	OutEscape = false;
 	TimeCodeRate = 0;
 	Derive = 0.0;
@@ -319,6 +319,7 @@ Result_t CPlayer::InitialisationJ2K()
 		//if (win_h != 0) FontSize = (32 * win_h) / 1080; else FontSize = 32;
 		Font32 = TTF_OpenFont(FontFileName2.c_str(), 32);
 		Font64 = TTF_OpenFont(FontFileName2.c_str(), 64);
+		Font16 = TTF_OpenFont(FontFileName2.c_str(), 16);
 		if (Font32 == NULL || Font64==NULL) if (Options.verbose_flag) fprintf(fp_log, "\nError: font %s not found\nSubtitle will be ignored\n", FontFileName2.c_str());
 	}
 	return RESULT_OK;
@@ -523,6 +524,7 @@ Result_t CPlayer::Read_timed_text_file(const Kumu::IFileReaderFactory& fileReade
 		//if (win_h != 0) FontSize = (32 * win_h) / 1080; else FontSize = 32;
 		Font32 = TTF_OpenFont(FontFileName.c_str(), 32);
 		Font64 = TTF_OpenFont(FontFileName.c_str(), 64);
+		Font16 = TTF_OpenFont(FontFileName.c_str(), 16);
 	} // if extention is MXF
 
 
@@ -743,6 +745,7 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 
 	if (win_h > 1440) Font = Font64;
 	else Font = Font32;
+	Mem.FontSmall = (Font == Font64) ? Font32 : Font16;
 
 	float scalex = (float(width) / float(win_w));
 	float scaley = (float(height) / float(win_h));
@@ -794,10 +797,18 @@ Result_t CPlayer::DecodeAndScreenFirstFrame(bool WaitAfterFirstFrame)
 	Mem.base = win_h - (win_h - (height) / scalef) / 2;
 	Mem.Scalef = scalef;
 	Mem.FrameCount = frame_count;
+
+	Mem.FrameRate = (ptrReel && ptrReel->ptrMainPicture) ? ptrReel->ptrMainPicture->dFrameRate : 24.0;
+	Mem.CounterMode = Options.CounterMode;
+
 	Mem.IncrustPosition = Options.IncrustPosition;
 	Mem.IncrustFps = Options.IncrustFps;
 	Mem.DisplayFps = 0.0;
 
+	Mem.TotalFrames = TotalCplFrames;
+	Mem.PriorFrames = PriorReelFrames;
+	Mem.ReelStartFrame = start_frame;
+	Mem.NumReels = NumReels;
 
 	Mem.chanB = chanB;
 	Mem.chanR = chanR;
@@ -1131,6 +1142,7 @@ void CPlayer::EndAndClear(bool LastTime)
 	out = out_swap = NULL;
 	if (Font32) TTF_CloseFont(Font32); 
 	if (Font64) TTF_CloseFont(Font64);
+	if (Font16) TTF_CloseFont(Font16);
 	if (LastTime)
 	{
 		if (MyAudioDevice)
@@ -1179,18 +1191,70 @@ void CPlayer::RenderImageWithSub(SDL_Renderer* Renderer, TTF_Font* Font, vector<
 		SDL_Rect R2{ PosFen, Mem.win_h - 30,  Mem.win_w-PosFen, 5 };
 		SDL_RenderFillRect(Renderer, &R2);
 		char buf[512];
-		sprintf(buf,"Frame %d", i);
-		bool bget = get_text_and_rect(Renderer, 0, 0, buf, Font, &TextTexture, &MessageRect);
-		if (bget)
-		{
-			MessageRect.x = 10;
-			MessageRect.y = 10;
 
-			SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
-			SDL_DestroyTexture(TextTexture);
+		if (Mem.CounterMode != COUNTER_NONE)
+		{
+			char buf2[64];
+			buf2[0] = 0;
+
+			if (Mem.CounterMode == COUNTER_TIMECODE || Mem.CounterMode == COUNTER_TIMECODE_REMAINING)
+			{
+				// DCI edit rates are integer, so plain division is exact (no drop-frame).
+				int fps = (int)(Mem.FrameRate + 0.5);
+				if (fps <= 0) fps = 24;
+
+				// Position within the whole CPL
+				Uint32 reelpos = (i >= Mem.ReelStartFrame) ? i - Mem.ReelStartFrame : 0;
+				Uint32 gpos = Mem.PriorFrames + reelpos;
+
+				Uint32 n;
+				const char* sign = "";
+				if (Mem.CounterMode == COUNTER_TIMECODE_REMAINING)
+				{
+					n = (Mem.TotalFrames > gpos) ? Mem.TotalFrames - gpos : 0;
+					sign = "-";
+				}
+				else
+					n = gpos;
+
+				sprintf(buf, "%s%02u:%02u:%02u:%02u", sign, (n / fps) / 3600, ((n / fps) / 60) % 60, (n / fps) % 60, n % fps);
+
+				// Per-reel time underneath the CPL total
+				Uint32 r;
+				if (Mem.CounterMode == COUNTER_TIMECODE_REMAINING)
+					r = (Mem.FrameCount > i) ? Mem.FrameCount - i : 0;
+				else
+					r = i;
+
+				sprintf(buf2, "reel %s%02u:%02u:%02u:%02u", sign, (r / fps) / 3600, ((r / fps) / 60) % 60, (r / fps) % 60, r % fps);
+			}
+			else
+				sprintf(buf, "Frame %d", i);
+
+			bool bget = get_text_and_rect(Renderer, 0, 0, buf, Font, &TextTexture, &MessageRect);
+			int NextY = 10;
+			if (bget)
+			{
+				MessageRect.x = 10;
+				MessageRect.y = 10;
+				NextY = MessageRect.y + MessageRect.h + 2;
+				SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
+				SDL_DestroyTexture(TextTexture);
+			}
+
+			if (buf2[0] != 0)
+			{
+				TTF_Font* SmallFont = (Mem.FontSmall != NULL) ? Mem.FontSmall : Font;
+				bget = get_text_and_rect(Renderer, 0, 0, buf2, SmallFont, &TextTexture, &MessageRect);
+				if (bget)
+				{
+					MessageRect.x = 10;
+					MessageRect.y = NextY;
+					SDL_RenderCopy(Renderer, TextTexture, NULL, &MessageRect);
+					SDL_DestroyTexture(TextTexture);
+				}
+			}
 		}
-		//else
-		//	if (Options.verbose_flag) fprintf(fp_log, "Error in frame information printing\n");
 	}
 	if (Mem.IncrustFps)
 	{
@@ -1358,6 +1422,12 @@ void CPlayer::StateMachine()
 		{
 			Mem.IncrustFps= !Mem.IncrustFps;
 			Options.IncrustFps = !Options.IncrustFps;
+		}
+
+		if (event.key.keysym.sym == SDLK_t)
+		{
+			Mem.CounterMode = (Mem.CounterMode + 1) % 4;
+			Options.CounterMode = Mem.CounterMode;
 		}
 
 		if (loop) // not paused state
@@ -2392,5 +2462,3 @@ void CPlayer::Swap(SDL_Surface* &out1, SDL_Surface* &out2)
 	out1 = out2;
 	out2 = temp;
 }
-
- 

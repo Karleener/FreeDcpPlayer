@@ -30,6 +30,7 @@
 #include <wx/msgdlg.h>
 
 #include "CDcpParse.h"
+#include "FreeDcpPlayer.h"
 
 using namespace std;
 
@@ -45,6 +46,7 @@ Run::Run(wxWindow* parent)
 	, m_Output51(false)
 	, m_HalfResolution(false)
 	, m_Play(false)
+	, m_CounterMode(COUNTER_FRAMES)
 	, m_IsPlaying(false)
 {
 
@@ -119,6 +121,8 @@ void Run::RunDcpPlayerDlgOnInitDialog( wxInitDialogEvent& event )
 		getline(read, line);
 		if (line == "0") m_Play = false; else m_Play = true;
 		//_chdir(ChoosenDir.c_str());
+		if (getline(read, line)) m_CounterMode = atoi(line.c_str()); // absent in old config.txt keeps default
+		if (m_CounterMode < COUNTER_NONE || m_CounterMode > COUNTER_TIMECODE_REMAINING) m_CounterMode = COUNTER_FRAMES;
 	}
 
 	else
@@ -212,6 +216,11 @@ void Run::m_checkBox_ProgressOnCheckBox( wxCommandEvent& event )
 	UpdateCommand();
 }
 
+void Run::m_choiceCounterOnChoice(wxCommandEvent& event)
+{
+	UpdateCommand();
+}
+
 void Run::m_checkBox_logOnCheckBox( wxCommandEvent& event )
 {
 	UpdateCommand();
@@ -253,6 +262,7 @@ void Run::m_button_runOnButtonClick( wxCommandEvent& event )
 		if (m_Output51) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
 		if (m_HalfResolution) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
 		if (m_Play) fprintf(fp, "%d\n", 1); else fprintf(fp, "%d\n", 0);
+		fprintf(fp, "%d\n", m_CounterMode);
 		fclose(fp);
 
 		m_Com = "Player is running - Press esc to stop before any change";
@@ -346,7 +356,8 @@ void Run::UpdateCommand()
 
 	if (!m_Back) arguments.push_back("-g");
 	if (m_ProgressBar) arguments.push_back("-i");
-	if (m_Output51) arguments.push_back("-o");
+	arguments.push_back("-t");
+	arguments.push_back(to_string(m_CounterMode));	if (m_Output51) arguments.push_back("-o");
 	if (m_HalfResolution) arguments.push_back("-s");
 	if (m_Play) arguments.push_back("-p");
 	if (m_Log)
@@ -380,8 +391,9 @@ bool Run::TransferDataToWindow()
 	m_checkBox_half->SetValue(m_HalfResolution);
 	m_checkBox_play->SetValue(m_Play);
 	m_staticText_Command->SetLabelText(m_Com);
-	return true;
+	m_choiceCounter->SetSelection(m_CounterMode);
 
+	return true;
 }
 
 bool Run::TransferDataFromWindow()
@@ -392,6 +404,8 @@ bool Run::TransferDataFromWindow()
 	m_Output51=m_checkBox_51->GetValue();
 	m_Play=m_checkBox_play->GetValue();
 	m_HalfResolution = m_checkBox_half->GetValue();
+	m_CounterMode = m_choiceCounter->GetCurrentSelection();
+	if (m_CounterMode < 0) m_CounterMode = COUNTER_FRAMES;
 
 	return true;
 

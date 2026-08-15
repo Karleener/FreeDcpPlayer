@@ -32,6 +32,8 @@
 #include "KM_error.h"
 #include "nvjpeg2k.h"
 
+#include <SDL_ttf.h>
+
 using namespace std;
 
 #if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
@@ -82,6 +84,13 @@ enum MajorMode_t
 	MMT_GOP_START,
 };
 
+enum CounterMode_t
+{
+	COUNTER_NONE = 0,
+	COUNTER_FRAMES = 1,
+	COUNTER_TIMECODE = 2,
+	COUNTER_TIMECODE_REMAINING = 3,
+};
 
 struct SMemoire
 {
@@ -105,7 +114,13 @@ struct SMemoire
 	bool IncrustPosition;
 	float DisplayFps;
 	bool IncrustFps;
-
+	double FrameRate;
+	int CounterMode;
+	Uint32 TotalFrames;      // total duration of all reels of the CPL
+	Uint32 PriorFrames;      // sum of durations of reels before the current one
+	Uint32 ReelStartFrame;   // this reel's start frame (entry point)
+	int NumReels;
+	TTF_Font* FontSmall;     // for the per-reel line
 };
 struct LineSub
 {

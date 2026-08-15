@@ -92,6 +92,7 @@ public:
 	bool HalfResolution;
 	bool PlayDirect;
 	float AudioGain;
+	int CounterMode; // 0=none, 1=frame number, 2=timecode
 
 	//
 	Rational PictureRate()
@@ -123,7 +124,7 @@ public:
 		version_flag(false), help_flag(false), stereo_image_flag(false), number_width(6),
 		start_frame(0), duration(0xffffffff), duration_flag(false), j2c_pedantic(true),
 		picture_rate(24), fb_size(FRAME_BUFFER_SIZE), file_prefix(0),
-		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false),HalfResolution(false), PlayDirect(false), AudioGain(0.0F)
+		channel_fmt(PCM::CF_NONE), input_filename(0), extension("dcdata"), NumDisplay(0), NumCpl(0),Output51(false), IncrustFps(false), CounterMode(COUNTER_FRAMES), HalfResolution(false), PlayDirect(false), AudioGain(0.0F)
 	{
 		memset(key_value, 0, KeyLen);
 		memset(key_id_value, 0, UUIDlen);
@@ -204,6 +205,12 @@ public:
 				case 'p': PlayDirect = true; break; // activate play direct without first pause
 
 				case 's': HalfResolution = true; break; // activate half resolution decoding
+
+				case 't':
+					TEST_EXTRA_ARG(i, 't');
+					CounterMode = Kumu::xabs(strtol(argv[i], 0, 10));
+					if (CounterMode > COUNTER_TIMECODE_REMAINING) CounterMode = COUNTER_TIMECODE_REMAINING;
+				break;
 
 				case 'V': version_flag = true; break;
 				case 'v': verbose_flag = true; break;
