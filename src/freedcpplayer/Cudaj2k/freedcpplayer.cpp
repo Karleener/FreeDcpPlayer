@@ -140,9 +140,9 @@ Options:\n\
 		 o Use Up and Down arrows for image per image in paused mode\n\
 		 o Use double mouse left click in the picture as an horizontal slider to move forward or backward\n\
 		 o Press  ESC key to end the program\n\
-		 o Press space bar for play/pause\n\n\
-		 \t\t o Press t key to cycle the counter display (none / frame number / timecode)\n\
-		o Example  : FreeDcpPlayer \"c:/mydcp\" -a 0 -d 0\n\
+		 o Press space bar for play/pause\n\
+		 o Press t key to cycle the counter display (none / frame number / timecode elapsed / timecode remaining)\n\
+		 o Example  : FreeDcpPlayer \"c:/mydcp\" -a 0 -d 0\n\
 		 o This version is restricted to Uncrypted 5.1 or stereo 2K or 4K DCP\n\
 		 o A Cuda based GPU with at least 6GB is required\n\n\
 		Portions of this software are copyright (c) <2006-2021> The FreeType\n\
@@ -256,6 +256,15 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 
 	if (AudioSelectedOk && DcpParse.VideoOk && DcpParse.SoundOk)
 	{
+		// Total CPL duration across all reels, for the global timecode display
+		Uint32 TotalCplFrames = 0;
+		for (int k = 0; k < DcpParse.CplVector[CplIndex]->VecReel.size(); k++)
+			TotalCplFrames += DcpParse.CplVector[CplIndex]->VecReel[k]->ptrMainPicture->iDuration;
+
+		pPlayer->TotalCplFrames = TotalCplFrames;
+		pPlayer->NumReels = (int)DcpParse.CplVector[CplIndex]->VecReel.size();
+		pPlayer->PriorReelFrames = 0;
+
 		// Process first reel
 		Result_t Result = pPlayer->InitialisationReaders(DcpParse, true, DcpParse.CplVector[CplIndex]->VecReel[0]);
 		if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); 
@@ -299,6 +308,8 @@ int main_dcpplayer(int argc, const char** argv,bool &IsPlaying)
 			//Result_t resultVideo = pReader->OpenRead(Video); // read video
 			//Uint32 duration = DcpParse.CplVector[ClpIndex]->VecReel[k]->ptrMainPicture->iDuration;
 			//for (int d = 0; d < duration; d++) VectVideoReader.push_back(pReader);
+
+			pPlayer->PriorReelFrames += DcpParse.CplVector[CplIndex]->VecReel[k - 1]->ptrMainPicture->iDuration;
 
 			Result_t Result = pPlayer->InitialisationReaders(DcpParse, false, DcpParse.CplVector[CplIndex]->VecReel[k]);
 			if (ASDCP_SUCCESS(Result))	Result = pPlayer->InitialisationJ2K(); 	

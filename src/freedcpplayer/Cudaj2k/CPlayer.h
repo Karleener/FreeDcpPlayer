@@ -153,6 +153,7 @@ public :
 	TTF_Font* Font;
 	TTF_Font* Font64;
 	TTF_Font* Font32;
+	TTF_Font* Font16;
 
 	PCM::MXFReader     *pReaderPCM;
 	PCM::FrameBuffer   *pFrameBufferPCM;
@@ -200,6 +201,10 @@ public :
 	Uint32 TheoreticalFrame;
 	int FontSize;
 	int DecodeLevel;
+
+	Uint32 TotalCplFrames = 0;
+	Uint32 PriorReelFrames = 0;
+	int NumReels = 1;
 
 	std::vector<unsigned short> vchanR;
 	std::vector<unsigned short> vchanG;
